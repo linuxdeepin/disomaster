@@ -85,10 +85,9 @@ DISOMaster::~DISOMaster()
 {
     Q_D(DISOMaster);
 
-    Xorriso_stop_msg_watcher(d->xorriso, 0);
-
     if(d->xorriso)
     {
+        Xorriso_stop_msg_watcher(d->xorriso, 0);
         Xorriso_destroy(&d->xorriso, 0);
     }
 }

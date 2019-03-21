@@ -28,27 +28,27 @@
 
 enum MediaType
 {
-	NoMedia = 0,
-	CD_ROM,
-	CD_R,
-	CD_RW,
-	DVD_ROM,
-	DVD_R,
-	DVD_RW,
-	DVD_PLUS_R,
-	DVD_PLUS_R_DL,
-	DVD_RAM,
-	DVD_PLUS_RW,
+    NoMedia = 0,
+    CD_ROM,
+    CD_R,
+    CD_RW,
+    DVD_ROM,
+    DVD_R,
+    DVD_RW,
+    DVD_PLUS_R,
+    DVD_PLUS_R_DL,
+    DVD_RAM,
+    DVD_PLUS_RW,
     BD_ROM,
-	BD_R,
-	BD_RE
+    BD_R,
+    BD_RE
 };
 
 enum JobStatus
 {
-	Failed = -1,
-	Idle,
-	Running,
+    Failed = -1,
+    Idle,
+    Running,
     Stalled,
     Finished
 };
@@ -57,14 +57,14 @@ typedef quint64 DiskBurner;
 
 struct DeviceProperty
 {
-	bool writable;
-	bool formatted;
-	bool blankable;
+    bool writable;
+    bool formatted;
+    bool blankable;
     int capacity;
     int avail;
     QList<QString> writespeed;
-	QString devid;
-	QString name;
+    QString devid;
+    QString name;
 };
 
 class DISOMasterPrivate;
@@ -76,9 +76,9 @@ class DISOMasterPrivate;
  */
 class DISOMaster : public QObject
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	explicit DISOMaster(QObject *parent=nullptr);
+    explicit DISOMaster(QObject *parent = nullptr);
     ~DISOMaster();
 
     /*
@@ -89,39 +89,39 @@ public:
      * Acquire a certain device. All methods below require
      * a device acquired.
      */
-	bool acquireDevice(DiskBurner dev);
+    bool acquireDevice(DiskBurner dev);
     /*
      * Release a device.
      */
-	void releaseDevice();
+    void releaseDevice();
 
     /*
      * Get the media type currently in the acquired device.
      */
-	MediaType getMediaType();
+    MediaType getMediaType();
     /*
      * Get the property of the acquired device.
      */
-	DeviceProperty getDeviceProperty();
+    DeviceProperty getDeviceProperty();
 
     /*
      * Stage files for writing to the disk.
      */
-	void stageFiles(const QHash<QUrl, QUrl> filelist);
+    void stageFiles(const QHash<QUrl, QUrl> filelist);
     const QHash<QUrl, QUrl> &stagingFiles() const;
-	void removeStagingFiles(const QList<QUrl> filelist);
+    void removeStagingFiles(const QList<QUrl> filelist);
     void commit(int speed = 0, bool closeSession = false);
-	void erase();
+    void erase();
     //void verify();
 
-	void dumpISO(const QUrl isopath);
-	void writeISO(const QUrl isopath, int speed = 0);
+    void dumpISO(const QUrl isopath);
+    void writeISO(const QUrl isopath, int speed = 0);
 
 Q_SIGNALS:
     void jobStatusChanged(JobStatus status, int progress);
 
 private:
-    DISOMasterPrivate* d_ptr;
+    DISOMasterPrivate *d_ptr;
     Q_DECLARE_PRIVATE(DISOMaster)
 };
 
