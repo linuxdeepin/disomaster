@@ -32,7 +32,10 @@ SOURCES += \
 HEADERS += \
         disomaster.h
 
+includes.files += disomaster.h
+includes.path = $$PREFIX/include/disomaster
+
 unix {
     target.path = /usr/lib
-    INSTALLS += target
+    INSTALLS += target includes
 }
