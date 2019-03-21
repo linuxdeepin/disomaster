@@ -25,22 +25,21 @@
 #define PCHAR(s) (char*)(s)
 
 #define XORRISO_OPT(opt, x, ...) \
-        Xorriso_set_problem_status(x, PCHAR(""), 0); \
-        r = Xorriso_option_##opt(x, __VA_ARGS__); \
-        r = Xorriso_eval_problem_status(x, r, 0);
+    Xorriso_set_problem_status(x, PCHAR(""), 0); \
+    r = Xorriso_option_##opt(x, __VA_ARGS__); \
+    r = Xorriso_eval_problem_status(x, r, 0);
 
 #define JOBFAILED_IF(r, x) \
-        if (r <= 0) \
-        { \
-            Xorriso_option_end(x, 1); \
-            Q_EMIT jobStatusChanged(JobStatus::Failed, -1); \
-            return; \
-        }
+    if (r <= 0) { \
+        Xorriso_option_end(x, 1); \
+        Q_EMIT jobStatusChanged(JobStatus::Failed, -1); \
+        return; \
+    }
 
 class DISOMasterPrivate
 {
 private:
-    DISOMasterPrivate(DISOMaster* q):q_ptr(q){}
+    DISOMasterPrivate(DISOMaster *q): q_ptr(q) {}
     XorrisO *xorriso;
     QHash<QUrl, QUrl> files;
     QList<DeviceProperty> dev;
@@ -64,15 +63,13 @@ DISOMaster::DISOMaster(QObject *parent):
 {
     Q_D(DISOMaster);
     int r = Xorriso_new(&d->xorriso, PCHAR("xorriso"), 0);
-    if (r <= 0)
-    {
+    if (r <= 0) {
         d->xorriso = nullptr;
         return;
     }
 
     r = Xorriso_startup_libraries(d->xorriso, 0);
-    if (r <= 0)
-    {
+    if (r <= 0) {
         Xorriso_destroy(&d->xorriso, 0);
         return;
     }
@@ -85,8 +82,7 @@ DISOMaster::~DISOMaster()
 {
     Q_D(DISOMaster);
 
-    if(d->xorriso)
-    {
+    if (d->xorriso) {
         Xorriso_stop_msg_watcher(d->xorriso, 0);
         Xorriso_destroy(&d->xorriso, 0);
     }
@@ -98,8 +94,7 @@ QList<DiskBurner> DISOMaster::getDevices()
     Xorriso_set_problem_status(d->xorriso, PCHAR(""), 0);
     int r = Xorriso_option_devices(d->xorriso, 0);
     r = Xorriso_eval_problem_status(d->xorriso, r, 0);
-    if (r <= 0)
-    {
+    if (r <= 0) {
         return {};
     }
 
@@ -108,11 +103,9 @@ QList<DiskBurner> DISOMaster::getDevices()
     QList<DiskBurner> ret;
     d->dev.clear();
 
-    do
-    {
+    do {
         r = Xorriso_sieve_get_result(d->xorriso, PCHAR("?  -dev"), &ac, &av, &avail, 0);
-        if (r > 0)
-        {
+        if (r > 0) {
             ret.push_back(id++);
             DeviceProperty p;
             p.name = QString(av[2]) + QString(av[3]);
@@ -130,8 +123,7 @@ bool DISOMaster::acquireDevice(DiskBurner dev)
     Q_D(DISOMaster);
     getDevices();
 
-    if (dev < (quint64)d->dev.size())
-    {
+    if (dev < (quint64)d->dev.size()) {
         d->files.clear();
         d->curdev = dev;
 
@@ -177,7 +169,7 @@ void DISOMaster::stageFiles(const QHash<QUrl, QUrl> filelist)
     d->files.unite(filelist);
 }
 
-const QHash<QUrl, QUrl>& DISOMaster::stagingFiles() const
+const QHash<QUrl, QUrl> &DISOMaster::stagingFiles() const
 {
     Q_D(const DISOMaster);
     return d->files;
@@ -186,11 +178,9 @@ const QHash<QUrl, QUrl>& DISOMaster::stagingFiles() const
 void DISOMaster::removeStagingFiles(const QList<QUrl> filelist)
 {
     Q_D(DISOMaster);
-    for (auto &i : filelist)
-    {
+    for (auto &i : filelist) {
         auto it = d->files.find(i);
-        if (it != d->files.end())
-        {
+        if (it != d->files.end()) {
             d->files.erase(it);
         }
     }
@@ -202,15 +192,16 @@ void DISOMaster::commit(int speed, bool closeSession)
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
 
     QString spd = QString::number(speed) + "k";
-    if (speed == 0) spd = "0";
+    if (speed == 0) {
+        spd = "0";
+    }
 
     int r;
 
     XORRISO_OPT(speed, d->xorriso, spd.toUtf8().data(), 0);
     JOBFAILED_IF(r, d->xorriso);
 
-    for (auto it = d->files.keyValueBegin(); it != d->files.keyValueEnd(); ++it)
-    {
+    for (auto it = d->files.keyValueBegin(); it != d->files.keyValueEnd(); ++it) {
         XORRISO_OPT(
             map, d->xorriso,
             (*it).first.toString().toUtf8().data(),
@@ -249,11 +240,13 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
     QString spd = QString::number(speed) + "k";
-    if (speed == 0) spd = "0";
+    if (speed == 0) {
+        spd = "0";
+    }
 
     int r;
 
-    char ** av = new char*[6];
+    char **av = new char *[6];
     int dummy;
     av[0] = strdup("cdrecord");
     av[1] = strdup("-v");
@@ -263,8 +256,7 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
     av[5] = strdup(isopath.toString().toUtf8().data());
     XORRISO_OPT(as, d->xorriso, 6, av, &dummy, 1);
     JOBFAILED_IF(r, d->xorriso);
-    for (int i = 0; i < 6; ++i)
-    {
+    for (int i = 0; i < 6; ++i) {
         free(av[i]);
     }
     delete []av;
@@ -272,17 +264,23 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
 
 void DISOMasterPrivate::getCurrentDeviceProperty()
 {
-    if (!~curdev) return;
+    if (!~curdev) {
+        return;
+    }
 
     Xorriso_set_problem_status(xorriso, PCHAR(""), 0);
     int r = Xorriso_option_list_speeds(xorriso, 0);
     r = Xorriso_eval_problem_status(xorriso, r, 0);
-    if (r <= 0) return;
+    if (r <= 0) {
+        return;
+    }
 
     int ac, avail;
     char **av;
     Xorriso_sieve_get_result(xorriso, PCHAR("Media current:"), &ac, &av, &avail, 0);
-    if (ac < 1) return;
+    if (ac < 1) {
+        return;
+    }
     QString mt = av[0];
     const static QHash<QString, MediaType> typemap = {
         {"CD-ROM",   MediaType::CD_ROM},
@@ -299,17 +297,18 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
         {"BD-R",     MediaType::BD_R},
         {"BD-RE",    MediaType::BD_RE}
     };
-    if (typemap.find(mt) != typemap.end()) curmedia = typemap[mt];
-    else curmedia = MediaType::NoMedia;
+    if (typemap.find(mt) != typemap.end()) {
+        curmedia = typemap[mt];
+    } else {
+        curmedia = MediaType::NoMedia;
+    }
     Xorriso__dispose_words(&ac, &av);
 
     dev[curdev].writespeed.clear();
-    do
-    {
+    do {
         Xorriso_sieve_get_result(xorriso, PCHAR("Write speed  :"), &ac, &av, &avail, 0);
-        if (ac == 2)
-        {
-            dev[curdev].writespeed.push_back(QString(av[0])+'\t'+QString(av[1]));
+        if (ac == 2) {
+            dev[curdev].writespeed.push_back(QString(av[0]) + '\t' + QString(av[1]));
         }
         Xorriso__dispose_words(&ac, &av);
     } while (avail > 0);
@@ -320,48 +319,43 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     Q_Q(DISOMaster);
     Q_UNUSED(type);
     QString msg(text);
-    msg=msg.trimmed();
+    msg = msg.trimmed();
     //fprintf(stderr,"msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
-    if (msg.indexOf("UPDATE : Closing track/session.") != -1)
-    {
+    if (msg.indexOf("UPDATE : Closing track/session.") != -1) {
         Q_EMIT q->jobStatusChanged(JobStatus::Stalled, 1);
         return;
     }
 
-    if (msg.indexOf("UPDATE : Thank you for being patient.") != -1)
-    {
+    if (msg.indexOf("UPDATE : Thank you for being patient.") != -1) {
         Q_EMIT q->jobStatusChanged(JobStatus::Stalled, 0);
         return;
     }
 
     QRegularExpression r("([0-9.]*)%");
     QRegularExpressionMatch m = r.match(msg);
-    if (m.hasMatch())
-    {
+    if (m.hasMatch()) {
         double percentage = m.captured(1).toDouble();
         Q_EMIT q->jobStatusChanged(JobStatus::Running, percentage);
     }
 
     if (msg.indexOf("Blanking done") != -1 ||
-        msg.indexOf(QRegularExpression("Writing to .* completed successfully.")) != -1)
-    {
+            msg.indexOf(QRegularExpression("Writing to .* completed successfully.")) != -1) {
         Q_EMIT q->jobStatusChanged(JobStatus::Finished, 0);
     }
 }
 
 int XorrisoResultHandler(void *handle, char *text)
 {
-    ((DISOMasterPrivate*)handle)->messageReceived(0, text);
+    ((DISOMasterPrivate *)handle)->messageReceived(0, text);
     return 1;
 }
 int XorrisoInfoHandler(void *handle, char *text)
 {
     //working around xorriso passing wrong handle to the callback
-    if (strstr(text, "DEBUG : Concurrent message watcher"))
-    {
+    if (strstr(text, "DEBUG : Concurrent message watcher")) {
         return 1;
     }
-    ((DISOMasterPrivate*)handle)->messageReceived(1, text);
+    ((DISOMasterPrivate *)handle)->messageReceived(1, text);
     return 1;
 }
 /*
