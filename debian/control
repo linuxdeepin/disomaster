@@ -1,0 +1,23 @@
+Source: disomaster
+Section: libs
+Priority: optional
+Maintainer: Chris Xiong <chirs241097@gmail.com>
+Build-Depends:
+ debhelper (>= 9),
+ pkg-config,
+ qt5-default,
+ qt5-qmake,
+ libisoburn-dev
+Standards-Version: 3.9.8
+Homepage: https://github.com/linuxdeepin/disomaster
+
+Package: libdisomaster
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: libisoburn wrapper for Qt.
+
+Package: libdisomaster-dev
+Architecture: any
+Depends: libdisomaster, ${misc:Depends}
+Description: Development package for libdisomaster.
+
