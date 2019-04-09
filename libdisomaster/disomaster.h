@@ -53,8 +53,6 @@ enum JobStatus
     Finished
 };
 
-typedef quint64 DiskBurner;
-
 struct DeviceProperty
 {
     bool formatted;
@@ -63,7 +61,7 @@ struct DeviceProperty
     quint64 avail;
     QList<QString> writespeed;
     QString devid;
-    QString name;
+    QString volid;
 };
 
 class DISOMasterPrivate;
@@ -81,16 +79,12 @@ public:
     ~DISOMaster();
 
     /*
-     * Returns a list of devices that can be acquired.
-     */
-    QList<DiskBurner> getDevices();
-    /*
-     * Acquire a certain device. All methods below require
-     * a device acquired.
+     * Acquire a certain device. (almost) All methods below
+     * require a device acquired.
      * DISOMaster will take exclusive control of the device
      * until it is released by calling releaseDevice().
      */
-    bool acquireDevice(DiskBurner dev);
+    bool acquireDevice(QString dev);
     /*
      * Release a device.
      */
@@ -100,6 +94,13 @@ public:
      * Get the property of the acquired device.
      */
     DeviceProperty getDeviceProperty();
+    /*
+     * Returns the property of a device when it was acquired
+     * last time. Does **not** require a device acquired.
+     * And yes, the property returned by this function may not
+     * reflect the current status of the device.
+     */
+    DeviceProperty getDevicePropertyCached(QString dev);
 
     /*
      * Stage files for writing to the disk.

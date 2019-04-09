@@ -42,8 +42,8 @@ private:
     DISOMasterPrivate(DISOMaster *q): q_ptr(q) {}
     XorrisO *xorriso;
     QHash<QUrl, QUrl> files;
-    QList<DeviceProperty> dev;
-    DiskBurner curdev = ~0ULL;
+    QHash<QString, DeviceProperty> dev;
+    QString curdev;
     DISOMaster *q_ptr;
     Q_DECLARE_PUBLIC(DISOMaster)
 
@@ -87,49 +87,19 @@ DISOMaster::~DISOMaster()
     }
 }
 
-QList<DiskBurner> DISOMaster::getDevices()
-{
-    Q_D(DISOMaster);
-    Xorriso_set_problem_status(d->xorriso, PCHAR(""), 0);
-    int r = Xorriso_option_devices(d->xorriso, 0);
-    r = Xorriso_eval_problem_status(d->xorriso, r, 0);
-    if (r <= 0) {
-        return {};
-    }
-
-    int ac, avail, id = 0;
-    char **av;
-    QList<DiskBurner> ret;
-    d->dev.clear();
-
-    do {
-        r = Xorriso_sieve_get_result(d->xorriso, PCHAR("?  -dev"), &ac, &av, &avail, 0);
-        if (r > 0) {
-            ret.push_back(id++);
-            DeviceProperty p;
-            p.name = QString(av[2]) + QString(av[3]);
-            p.devid = QString(av[0]);
-            d->dev.push_back(p);
-        }
-    } while (avail > 0);
-
-    Xorriso__dispose_words(&ac, &av);
-    return ret;
-}
-
-bool DISOMaster::acquireDevice(DiskBurner dev)
+bool DISOMaster::acquireDevice(QString dev)
 {
     Q_D(DISOMaster);
 
-    if (dev < (quint64)d->dev.size()) {
+    if (dev.length()) {
         d->files.clear();
         d->curdev = dev;
 
         Xorriso_set_problem_status(d->xorriso, PCHAR(""), 0);
-        int r = Xorriso_option_dev(d->xorriso, d->dev[d->curdev].devid.toUtf8().data(), 3);
+        int r = Xorriso_option_dev(d->xorriso, dev.toUtf8().data(), 3);
         r = Xorriso_eval_problem_status(d->xorriso, r, 0);
         if (r <= 0) {
-            d->curdev = -1;
+            d->curdev = "";
             return false;
         }
         return true;
@@ -141,7 +111,7 @@ bool DISOMaster::acquireDevice(DiskBurner dev)
 void DISOMaster::releaseDevice()
 {
     Q_D(DISOMaster);
-    d->curdev = ~0ULL;
+    d->curdev = "";
     d->files.clear();
     Xorriso_option_end(d->xorriso, 0);
 }
@@ -151,6 +121,14 @@ DeviceProperty DISOMaster::getDeviceProperty()
     Q_D(DISOMaster);
     d->getCurrentDeviceProperty();
     return d->dev[d->curdev];
+}
+
+DeviceProperty DISOMaster::getDevicePropertyCached(QString dev)
+{
+    Q_D(DISOMaster);
+    if (d->dev.find(dev) != d->dev.end())
+        return d->dev[dev];
+    return DeviceProperty();
 }
 
 void DISOMaster::stageFiles(const QHash<QUrl, QUrl> filelist)
@@ -254,9 +232,11 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
 
 void DISOMasterPrivate::getCurrentDeviceProperty()
 {
-    if (!~curdev) {
+    if (!curdev.length()) {
         return;
     }
+
+    dev[curdev].devid = curdev;
 
     Xorriso_set_problem_status(xorriso, PCHAR(""), 0);
     int r = Xorriso_option_list_speeds(xorriso, 0);
@@ -297,11 +277,16 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
     Xorriso__dispose_words(&ac, &av);
     
     Xorriso_sieve_get_result(xorriso, PCHAR("Media summary:"), &ac, &av, &avail, 0);
-    if (ac == 4)
-    {
-        const QString units="kmg";
-        dev[curdev].data = atof(av[2]) * (1 << ((units.indexOf(QString(av[2]).back())+1) * 10));
-        dev[curdev].avail = atof(av[3]) * (1 << ((units.indexOf(QString(av[3]).back())+1) * 10));
+    if (ac == 4) {
+        const QString units = "kmg";
+        dev[curdev].data = atof(av[2]) * (1 << ((units.indexOf(QString(av[2]).back()) + 1) * 10));
+        dev[curdev].avail = atof(av[3]) * (1 << ((units.indexOf(QString(av[3]).back()) + 1) * 10));
+    }
+    Xorriso__dispose_words(&ac, &av);
+
+    Xorriso_sieve_get_result(xorriso, PCHAR("Volume id    :"), &ac, &av, &avail, 0);
+    if (ac == 1) {
+        dev[curdev].volid = QString(av[0]);
     }
     Xorriso__dispose_words(&ac, &av);
 
