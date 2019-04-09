@@ -43,8 +43,7 @@ private:
     XorrisO *xorriso;
     QHash<QUrl, QUrl> files;
     QList<DeviceProperty> dev;
-    DiskBurner curdev = -1;
-    MediaType curmedia = MediaType::NoMedia;
+    DiskBurner curdev = ~0ULL;
     DISOMaster *q_ptr;
     Q_DECLARE_PUBLIC(DISOMaster)
 
@@ -121,7 +120,6 @@ QList<DiskBurner> DISOMaster::getDevices()
 bool DISOMaster::acquireDevice(DiskBurner dev)
 {
     Q_D(DISOMaster);
-    getDevices();
 
     if (dev < (quint64)d->dev.size()) {
         d->files.clear();
@@ -144,16 +142,8 @@ void DISOMaster::releaseDevice()
 {
     Q_D(DISOMaster);
     d->curdev = ~0ULL;
-    d->curmedia = MediaType::NoMedia;
     d->files.clear();
     Xorriso_option_end(d->xorriso, 0);
-}
-
-MediaType DISOMaster::getMediaType()
-{
-    Q_D(DISOMaster);
-    d->getCurrentDeviceProperty();
-    return d->curmedia;
 }
 
 DeviceProperty DISOMaster::getDeviceProperty()
@@ -279,6 +269,7 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
     char **av;
     Xorriso_sieve_get_result(xorriso, PCHAR("Media current:"), &ac, &av, &avail, 0);
     if (ac < 1) {
+	    Xorriso__dispose_words(&ac, &av);
         return;
     }
     QString mt = av[0];
@@ -297,10 +288,20 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
         {"BD-R",     MediaType::BD_R},
         {"BD-RE",    MediaType::BD_RE}
     };
+    mt = mt.left(mt.indexOf(' ')-1);
     if (typemap.find(mt) != typemap.end()) {
-        curmedia = typemap[mt];
+        dev[curdev].media = typemap[mt];
     } else {
-        curmedia = MediaType::NoMedia;
+        dev[curdev].media = MediaType::NoMedia;
+    }
+    Xorriso__dispose_words(&ac, &av);
+    
+    Xorriso_sieve_get_result(xorriso, PCHAR("Media summary:"), &ac, &av, &avail, 0);
+    if (ac == 4)
+    {
+        const QString units="kmg";
+        dev[curdev].data = atof(av[2]) * (1 << ((units.indexOf(QString(av[2]).back())+1) * 10));
+        dev[curdev].avail = atof(av[3]) * (1 << ((units.indexOf(QString(av[3]).back())+1) * 10));
     }
     Xorriso__dispose_words(&ac, &av);
 

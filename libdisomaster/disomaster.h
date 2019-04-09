@@ -57,11 +57,10 @@ typedef quint64 DiskBurner;
 
 struct DeviceProperty
 {
-    bool writable;
     bool formatted;
-    bool blankable;
-    int capacity;
-    int avail;
+    MediaType media;
+    quint64 data;
+    quint64 avail;
     QList<QString> writespeed;
     QString devid;
     QString name;
@@ -88,6 +87,8 @@ public:
     /*
      * Acquire a certain device. All methods below require
      * a device acquired.
+     * DISOMaster will take exclusive control of the device
+     * until it is released by calling releaseDevice().
      */
     bool acquireDevice(DiskBurner dev);
     /*
@@ -95,10 +96,6 @@ public:
      */
     void releaseDevice();
 
-    /*
-     * Get the media type currently in the acquired device.
-     */
-    MediaType getMediaType();
     /*
      * Get the property of the acquired device.
      */
@@ -121,7 +118,7 @@ Q_SIGNALS:
     void jobStatusChanged(JobStatus status, int progress);
 
 private:
-    DISOMasterPrivate *d_ptr;
+    QScopedPointer<DISOMasterPrivate> d_ptr;
     Q_DECLARE_PRIVATE(DISOMaster)
 };
 

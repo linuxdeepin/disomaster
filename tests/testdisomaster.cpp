@@ -42,7 +42,7 @@ void TestDISOMaster::test_getDevices()
     DISOMaster* x=new DISOMaster;
     QList<DiskBurner> b = x->getDevices();
     x->acquireDevice(0);
-    x->getMediaType();
+    x->getDeviceProperty();
     x->releaseDevice();
     QVERIFY(b.size()>0);
     delete x;

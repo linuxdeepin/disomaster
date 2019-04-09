@@ -8,8 +8,7 @@ QT       -= gui
 
 TARGET = disomaster
 TEMPLATE = lib
-CONFIG += NO_KEYWORDS
-CONFIG += LINK_PKGCONFIG
+CONFIG += no_keywords link_pkgconfig create_prl no_install_prl create_pc
 
 DEFINES += DISOMASTER_LIBRARY
 
@@ -32,10 +31,20 @@ SOURCES += \
 HEADERS += \
         disomaster.h
 
+isEmpty(PREFIX) {
+    PREFIX = /usr
+}
+
 includes.files += disomaster.h
 includes.path = $$PREFIX/include/disomaster
 
+QMAKE_PKGCONFIG_NAME = libdisomaster
+QMAKE_PKGCONFIG_DESCRIPTION = Wrapper class for libisoburn
+QMAKE_PKGCONFIG_INCDIR = $$includes.path
+QMAKE_PKGCONFIG_LIBDIR = $$target.path
+QMAKE_PKGCONFIG_DESTDIR = pkgconfig
+
 unix {
-    target.path = /usr/lib
+    target.path = $$PREFIX/lib
     INSTALLS += target includes
 }
