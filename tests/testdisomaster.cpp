@@ -37,27 +37,33 @@ TestDISOMaster::TestDISOMaster(QObject *parent) : QObject(parent)
     qRegisterMetaType<JobStatus>("JobStatus");
 }
 
-void TestDISOMaster::test_getDevices()
+void TestDISOMaster::test_getDevice()
 {
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
+    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
     DISOMaster* x=new DISOMaster;
-    QList<DiskBurner> b = x->getDevices();
-    x->acquireDevice(0);
+    x->acquireDevice(dev);
     x->getDeviceProperty();
     x->releaseDevice();
-    QVERIFY(b.size()>0);
+    DeviceProperty dp = x->getDevicePropertyCached(dev);
+    fprintf(stderr, "data: %llu, avail: %llu\n", dp.data, dp.avail);
+    QVERIFY(dp.devid != "");
     delete x;
 }
 
 void TestDISOMaster::test_writeFiles()
 {
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DATAPATH"));
+    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
+    const QString path = qEnvironmentVariable("DISOMASTERTEST_DATAPATH");
     DISOMaster *x=new DISOMaster;
     TestSignalReceiver *r=new TestSignalReceiver(this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
-    QThread *th=QThread::create([x]{
-        x->acquireDevice(0);
+    QThread *th=QThread::create([=]{
+        x->acquireDevice(dev);
         QHash<QUrl, QUrl> files{
-            {QUrl("/home/tfosirhc/Pictures"),  QUrl("/Pictures")},
-            {QUrl("/home/tfosirhc/Downloads"), QUrl("/Test")}
+            {QUrl(path), QUrl("/")}
         };
         x->stageFiles(files);
         x->commit();
@@ -73,11 +79,13 @@ void TestDISOMaster::test_writeFiles()
 
 void TestDISOMaster::test_erase()
 {
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
+    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
     DISOMaster *x=new DISOMaster;
     TestSignalReceiver *r=new TestSignalReceiver(this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
-    QThread *th=QThread::create([x]{
-        x->acquireDevice(0);
+    QThread *th=QThread::create([=]{
+        x->acquireDevice(dev);
         x->erase();
         x->releaseDevice();
     });
