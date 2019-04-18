@@ -36,6 +36,11 @@
         return; \
     }
 
+int XorrisoResultHandler(void *handle, char *text);
+int XorrisoInfoHandler(void *handle, char *text);
+
+namespace DISOMasterNS {
+
 class DISOMasterPrivate
 {
 private:
@@ -52,9 +57,6 @@ private:
 public:
     void messageReceived(int type, char *text);
 };
-
-int XorrisoResultHandler(void *handle, char *text);
-int XorrisoInfoHandler(void *handle, char *text);
 
 DISOMaster::DISOMaster(QObject *parent):
     QObject(parent),
@@ -330,9 +332,11 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     }
 }
 
+}
+
 int XorrisoResultHandler(void *handle, char *text)
 {
-    ((DISOMasterPrivate *)handle)->messageReceived(0, text);
+    ((DISOMasterNS::DISOMasterPrivate*)handle)->messageReceived(0, text);
     return 1;
 }
 int XorrisoInfoHandler(void *handle, char *text)
@@ -341,7 +345,7 @@ int XorrisoInfoHandler(void *handle, char *text)
     if (strstr(text, "DEBUG : Concurrent message watcher")) {
         return 1;
     }
-    ((DISOMasterPrivate *)handle)->messageReceived(1, text);
+    ((DISOMasterNS::DISOMasterPrivate*)handle)->messageReceived(1, text);
     return 1;
 }
 /*

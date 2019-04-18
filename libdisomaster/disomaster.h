@@ -26,6 +26,8 @@
 #include <QList>
 #include <QUrl>
 
+namespace DISOMasterNS {
+
 enum MediaType
 {
     NoMedia = 0,
@@ -122,6 +124,8 @@ private:
     QScopedPointer<DISOMasterPrivate> d_ptr;
     Q_DECLARE_PRIVATE(DISOMaster)
 };
+
+}
 
 #endif
 // vim: set tabstop=4 shiftwidth=4 softtabstop expandtab

@@ -22,6 +22,8 @@
 #include <QThread>
 #include <QMetaType>
 
+using namespace DISOMasterNS;
+
 TestSignalReceiver::TestSignalReceiver(TestDISOMaster *parent) : QObject(parent), p(parent)
 {
 }
