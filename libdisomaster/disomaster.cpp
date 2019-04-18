@@ -128,9 +128,18 @@ DeviceProperty DISOMaster::getDeviceProperty()
 DeviceProperty DISOMaster::getDevicePropertyCached(QString dev)
 {
     Q_D(DISOMaster);
-    if (d->dev.find(dev) != d->dev.end())
+    if (d->dev.find(dev) != d->dev.end()) {
         return d->dev[dev];
+    }
     return DeviceProperty();
+}
+
+void DISOMaster::nullifyDevicePropertyCache(QString dev)
+{
+    Q_D(DISOMaster);
+    if (d->dev.find(dev) != d->dev.end()) {
+        d->dev.erase(d->dev.find(dev));
+    }
 }
 
 void DISOMaster::stageFiles(const QHash<QUrl, QUrl> filelist)

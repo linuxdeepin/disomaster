@@ -105,6 +105,14 @@ public:
     DeviceProperty getDevicePropertyCached(QString dev);
 
     /*
+     * Nullify cached device property for a drive.
+     * Call this after a disc swap (or whenever you are sure
+     * the previously cached device property is no longer
+     * up to date).
+     */
+    void nullifyDevicePropertyCache(QString dev);
+
+    /*
      * Stage files for writing to the disk.
      */
     void stageFiles(const QHash<QUrl, QUrl> filelist);
