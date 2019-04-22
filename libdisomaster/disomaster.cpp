@@ -319,12 +319,12 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     msg = msg.trimmed();
     //fprintf(stderr,"msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
     if (msg.indexOf("UPDATE : Closing track/session.") != -1) {
-        Q_EMIT q->jobStatusChanged(JobStatus::Stalled, 1);
+        Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Stalled, 1);
         return;
     }
 
     if (msg.indexOf("UPDATE : Thank you for being patient.") != -1) {
-        Q_EMIT q->jobStatusChanged(JobStatus::Stalled, 0);
+        Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Stalled, 0);
         return;
     }
 
@@ -332,12 +332,12 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     QRegularExpressionMatch m = r.match(msg);
     if (m.hasMatch()) {
         double percentage = m.captured(1).toDouble();
-        Q_EMIT q->jobStatusChanged(JobStatus::Running, percentage);
+        Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
     }
 
     if (msg.indexOf("Blanking done") != -1 ||
-            msg.indexOf(QRegularExpression("Writing to .* completed successfully.")) != -1) {
-        Q_EMIT q->jobStatusChanged(JobStatus::Finished, 0);
+        msg.indexOf(QRegularExpression("Writing to .* completed successfully.")) != -1) {
+        Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Finished, 0);
     }
 }
 
