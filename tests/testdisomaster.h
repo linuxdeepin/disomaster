@@ -33,7 +33,7 @@ class TestSignalReceiver: public QObject
 public:
     explicit TestSignalReceiver(TestDISOMaster *parent = nullptr);
 public Q_SLOTS:
-    void updateJobStatus(DISOMasterNS::JobStatus status, int progress);
+    void updateJobStatus(DISOMasterNS::DISOMaster::JobStatus status, int progress);
 private:
     TestDISOMaster* p;
 };
@@ -43,7 +43,7 @@ class TestDISOMaster : public QObject
     Q_OBJECT
 public:
     explicit TestDISOMaster(QObject *parent = nullptr);
-    DISOMasterNS::JobStatus st;
+    DISOMasterNS::DISOMaster::JobStatus st;
     int p;
 
 private Q_SLOTS:

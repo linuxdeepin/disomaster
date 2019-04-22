@@ -46,15 +46,6 @@ enum MediaType
     BD_RE
 };
 
-enum JobStatus
-{
-    Failed = -1,
-    Idle,
-    Running,
-    Stalled,
-    Finished
-};
-
 struct DeviceProperty
 {
     bool formatted;
@@ -77,6 +68,16 @@ class DISOMaster : public QObject
 {
     Q_OBJECT
 public:
+    enum JobStatus
+    {
+        Failed = -1,
+        Idle,
+        Running,
+        Stalled,
+        Finished
+    };
+    Q_ENUM(JobStatus)
+
     explicit DISOMaster(QObject *parent = nullptr);
     ~DISOMaster();
 
@@ -126,7 +127,7 @@ public:
     void writeISO(const QUrl isopath, int speed = 0);
 
 Q_SIGNALS:
-    void jobStatusChanged(JobStatus status, int progress);
+    void jobStatusChanged(DISOMasterNS::DISOMaster::JobStatus status, int progress);
 
 private:
     QScopedPointer<DISOMasterPrivate> d_ptr;

@@ -27,7 +27,7 @@ using namespace DISOMasterNS;
 TestSignalReceiver::TestSignalReceiver(TestDISOMaster *parent) : QObject(parent), p(parent)
 {
 }
-void TestSignalReceiver::updateJobStatus(JobStatus status, int progress)
+void TestSignalReceiver::updateJobStatus(DISOMaster::JobStatus status, int progress)
 {
     fprintf(stderr, "status update: %d %d\n", status, progress);
     p->st = status;
@@ -36,7 +36,7 @@ void TestSignalReceiver::updateJobStatus(JobStatus status, int progress)
 
 TestDISOMaster::TestDISOMaster(QObject *parent) : QObject(parent)
 {
-    qRegisterMetaType<JobStatus>("JobStatus");
+    qRegisterMetaType<DISOMaster::JobStatus>(QT_STRINGIFY(DISOMaster::JobStatus));
 }
 
 void TestDISOMaster::test_getDevice()
@@ -72,7 +72,7 @@ void TestDISOMaster::test_writeFiles()
         x->releaseDevice();
     });
     th->start();
-    QTRY_VERIFY_WITH_TIMEOUT(st==JobStatus::Finished, 120000);
+    QTRY_VERIFY_WITH_TIMEOUT(st == DISOMaster::JobStatus::Finished, 120000);
     th->wait();
     delete th;
     delete r;
@@ -92,7 +92,7 @@ void TestDISOMaster::test_erase()
         x->releaseDevice();
     });
     th->start();
-    QTRY_VERIFY_WITH_TIMEOUT(st==JobStatus::Finished, 60000);
+    QTRY_VERIFY_WITH_TIMEOUT(st == DISOMaster::JobStatus::Finished, 60000);
     th->wait();
     delete th;
     delete r;
