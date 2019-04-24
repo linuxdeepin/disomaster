@@ -19,7 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "testdisomaster.h"
-#include <QThread>
+#include <QtConcurrent/QtConcurrent>
+#include <QFuture>
 #include <QMetaType>
 
 using namespace DISOMasterNS;
@@ -59,10 +60,13 @@ void TestDISOMaster::test_writeFiles()
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DATAPATH"));
     const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
     const QString path = qEnvironmentVariable("DISOMASTERTEST_DATAPATH");
-    DISOMaster *x=new DISOMaster;
-    TestSignalReceiver *r=new TestSignalReceiver(this);
+
+    st = DISOMaster::JobStatus::Idle;
+    DISOMaster *x = new DISOMaster;
+    TestSignalReceiver *r = new TestSignalReceiver(this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
-    QThread *th=QThread::create([=]{
+
+    QFuture<void> f = QtConcurrent::run([=] {
         x->acquireDevice(dev);
         QHash<QUrl, QUrl> files{
             {QUrl(path), QUrl("/")}
@@ -71,10 +75,9 @@ void TestDISOMaster::test_writeFiles()
         x->commit();
         x->releaseDevice();
     });
-    th->start();
+
     QTRY_VERIFY_WITH_TIMEOUT(st == DISOMaster::JobStatus::Finished, 120000);
-    th->wait();
-    delete th;
+    f.waitForFinished();
     delete r;
     delete x;
 }
@@ -83,18 +86,44 @@ void TestDISOMaster::test_erase()
 {
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
     const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
-    DISOMaster *x=new DISOMaster;
-    TestSignalReceiver *r=new TestSignalReceiver(this);
+
+    st = DISOMaster::JobStatus::Idle;
+    DISOMaster *x = new DISOMaster;
+    TestSignalReceiver *r = new TestSignalReceiver(this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
-    QThread *th=QThread::create([=]{
+
+    QFuture<void> f = QtConcurrent::run([=] {
         x->acquireDevice(dev);
         x->erase();
         x->releaseDevice();
     });
-    th->start();
+
     QTRY_VERIFY_WITH_TIMEOUT(st == DISOMaster::JobStatus::Finished, 60000);
-    th->wait();
-    delete th;
+    f.waitForFinished();
+    delete r;
+    delete x;
+}
+
+void TestDISOMaster::test_isoWrite()
+{
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_ISOFILE"));
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
+    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
+    const QString iso = qEnvironmentVariable("DISOMASTERTEST_ISOFILE");
+
+    st = DISOMaster::JobStatus::Idle;
+    DISOMaster *x = new DISOMaster;
+    TestSignalReceiver *r = new TestSignalReceiver(this);
+    connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
+
+    QFuture<void> f = QtConcurrent::run([=] {
+        x->acquireDevice(dev);
+        x->writeISO(iso);
+        x->releaseDevice();
+    });
+
+    QTRY_VERIFY_WITH_TIMEOUT(st == DISOMaster::JobStatus::Finished, 750000);
+    f.waitForFinished();
     delete r;
     delete x;
 }
