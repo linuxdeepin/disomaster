@@ -279,7 +279,7 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
         {"BD-R",     MediaType::BD_R},
         {"BD-RE",    MediaType::BD_RE}
     };
-    mt = mt.left(mt.indexOf(' ')-1);
+    mt = mt.left(mt.indexOf(' '));
     if (typemap.find(mt) != typemap.end()) {
         dev[curdev].media = typemap[mt];
     } else {
@@ -317,7 +317,8 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     Q_UNUSED(type);
     QString msg(text);
     msg = msg.trimmed();
-    //fprintf(stderr,"msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
+
+    //fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
     if (msg.indexOf("UPDATE : Closing track/session.") != -1) {
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Stalled, 1);
         return;
@@ -328,10 +329,17 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
         return;
     }
 
-    QRegularExpression r("([0-9.]*)%");
+    QRegularExpression r("([0-9.]*)%\\s*(fifo|done)");
     QRegularExpressionMatch m = r.match(msg);
     if (m.hasMatch()) {
         double percentage = m.captured(1).toDouble();
+        Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
+    }
+
+    r = QRegularExpression("([0-9]*)\\s*of\\s*([0-9]*) MB written");
+    m = r.match(msg);
+    if (m.hasMatch()) {
+        double percentage = 100. * m.captured(1).toDouble() / m.captured(2).toDouble();
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
     }
 
