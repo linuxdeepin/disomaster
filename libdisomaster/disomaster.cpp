@@ -180,11 +180,11 @@ void DISOMaster::commit(int speed, bool closeSession)
     XORRISO_OPT(speed, d->xorriso, spd.toUtf8().data(), 0);
     JOBFAILED_IF(r, d->xorriso);
 
-    for (auto it = d->files.keyValueBegin(); it != d->files.keyValueEnd(); ++it) {
+    for (auto it = d->files.keyBegin(); it != d->files.keyEnd(); ++it) {
         XORRISO_OPT(
             map, d->xorriso,
-            (*it).first.toString().toUtf8().data(),
-            (*it).second.toString().toUtf8().data(),
+            it->toString().toUtf8().data(),
+            d->files[*it].toString().toUtf8().data(),
             0
         );
         JOBFAILED_IF(r, d->xorriso);
@@ -290,8 +290,8 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
     Xorriso_sieve_get_result(xorriso, PCHAR("Media summary:"), &ac, &av, &avail, 0);
     if (ac == 4) {
         const QString units = "kmg";
-        dev[curdev].data = atof(av[2]) * (1 << ((units.indexOf(QString(av[2]).back()) + 1) * 10));
-        dev[curdev].avail = atof(av[3]) * (1 << ((units.indexOf(QString(av[3]).back()) + 1) * 10));
+        dev[curdev].data = atof(av[2]) * (1 << ((units.indexOf(*(QString(av[2]).rbegin())) + 1) * 10));
+        dev[curdev].avail = atof(av[3]) * (1 << ((units.indexOf(*(QString(av[3]).rbegin())) + 1) * 10));
     }
     Xorriso__dispose_words(&ac, &av);
 
