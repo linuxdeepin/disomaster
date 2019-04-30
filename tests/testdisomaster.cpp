@@ -43,7 +43,7 @@ TestDISOMaster::TestDISOMaster(QObject *parent) : QObject(parent)
 void TestDISOMaster::test_getDevice()
 {
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
-    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
+    const QString dev = QString(qgetenv("DISOMASTERTEST_DEVICE"));
     DISOMaster* x=new DISOMaster;
     x->acquireDevice(dev);
     x->getDeviceProperty();
@@ -58,8 +58,8 @@ void TestDISOMaster::test_writeFiles()
 {
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DATAPATH"));
-    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
-    const QString path = qEnvironmentVariable("DISOMASTERTEST_DATAPATH");
+    const QString dev = QString(qgetenv("DISOMASTERTEST_DEVICE"));
+    const QString path = QString(qgetenv("DISOMASTERTEST_DATAPATH"));
 
     st = DISOMaster::JobStatus::Idle;
     DISOMaster *x = new DISOMaster;
@@ -85,7 +85,7 @@ void TestDISOMaster::test_writeFiles()
 void TestDISOMaster::test_erase()
 {
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
-    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
+    const QString dev = QString(qgetenv("DISOMASTERTEST_DEVICE"));
 
     st = DISOMaster::JobStatus::Idle;
     DISOMaster *x = new DISOMaster;
@@ -108,8 +108,8 @@ void TestDISOMaster::test_isoWrite()
 {
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_ISOFILE"));
     Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
-    const QString dev = qEnvironmentVariable("DISOMASTERTEST_DEVICE");
-    const QString iso = qEnvironmentVariable("DISOMASTERTEST_ISOFILE");
+    const QString dev = QString(qgetenv("DISOMASTERTEST_DEVICE"));
+    const QString iso = QString(qgetenv("DISOMASTERTEST_ISOFILE"));
 
     st = DISOMaster::JobStatus::Idle;
     DISOMaster *x = new DISOMaster;
