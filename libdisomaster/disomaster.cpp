@@ -229,13 +229,13 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
     int r;
 
     char **av = new char *[6];
-    int dummy;
+    int dummy = 0;
     av[0] = strdup("cdrecord");
     av[1] = strdup("-v");
-    av[2] = strdup((QString("dev=") + d->dev[d->curdev].devid).toUtf8().data());
+    av[2] = strdup((QString("dev=") + d->curdev).toUtf8().data());
     av[3] = strdup("blank=as_needed");
     av[4] = strdup((QString("speed=") + spd).toUtf8().data());
-    av[5] = strdup(isopath.toString().toUtf8().data());
+    av[5] = strdup(isopath.path().toUtf8().data());
     XORRISO_OPT(as, d->xorriso, 6, av, &dummy, 1);
     JOBFAILED_IF(r, d->xorriso);
     for (int i = 0; i < 6; ++i) {
@@ -252,14 +252,7 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
 
     dev[curdev].devid = curdev;
 
-    Xorriso_set_problem_status(xorriso, PCHAR(""), 0);
-    int r = Xorriso_option_list_speeds(xorriso, 0);
-    r = Xorriso_eval_problem_status(xorriso, r, 0);
-    if (r <= 0) {
-        return;
-    }
-
-    int ac, avail;
+    int r, ac, avail;
     char **av;
     Xorriso_sieve_get_result(xorriso, PCHAR("Media current:"), &ac, &av, &avail, 0);
     if (ac < 1) {
@@ -303,6 +296,11 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
         dev[curdev].volid = QString(av[0]);
     }
     Xorriso__dispose_words(&ac, &av);
+
+    XORRISO_OPT(list_speeds, xorriso, 0);
+    if (r <= 0) {
+        return;
+    }
 
     dev[curdev].writespeed.clear();
     do {
