@@ -165,7 +165,7 @@ void DISOMaster::removeStagingFiles(const QList<QUrl> filelist)
     }
 }
 
-void DISOMaster::commit(int speed, bool closeSession)
+void DISOMaster::commit(int speed, bool closeSession, QString volId)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
@@ -178,6 +178,9 @@ void DISOMaster::commit(int speed, bool closeSession)
     int r;
 
     XORRISO_OPT(speed, d->xorriso, spd.toUtf8().data(), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(volid, d->xorriso, volId.toUtf8().data(), 0);
     JOBFAILED_IF(r, d->xorriso);
 
     for (auto it = d->files.keyBegin(); it != d->files.keyEnd(); ++it) {
