@@ -256,6 +256,8 @@ void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
         *qbad = 1. * nbad / d->dev[d->curdev].datablocks;
     }
 
+    Xorriso_sieve_clear_results(d->xorriso, 0);
+
     Q_EMIT jobStatusChanged(DISOMaster::JobStatus::Finished, 0);
 
 }
@@ -361,6 +363,8 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
         }
         Xorriso__dispose_words(&ac, &av);
     } while (avail > 0);
+
+    Xorriso_sieve_clear_results(xorriso, 0);
 }
 
 void DISOMasterPrivate::messageReceived(int type, char *text)
