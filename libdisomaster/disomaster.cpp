@@ -344,6 +344,12 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
     }
     Xorriso__dispose_words(&ac, &av);
 
+    Xorriso_sieve_get_result(xorriso, PCHAR("Media status :"), &ac, &av, &avail, 0);
+    if (ac == 1) {
+        dev[curdev].formatted = QString(av[0]).indexOf("is blank") != -1;
+    }
+    Xorriso__dispose_words(&ac, &av);
+
     Xorriso_sieve_get_result(xorriso, PCHAR("Volume id    :"), &ac, &av, &avail, 0);
     if (ac == 1) {
         dev[curdev].volid = QString(av[0]);
