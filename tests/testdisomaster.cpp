@@ -128,4 +128,26 @@ void TestDISOMaster::test_isoWrite()
     delete x;
 }
 
+void TestDISOMaster::test_checkMedia()
+{
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
+    const QString dev = QString(qgetenv("DISOMASTERTEST_DEVICE"));
+    st = DISOMaster::JobStatus::Idle;
+    DISOMaster *x = new DISOMaster;
+    TestSignalReceiver *r = new TestSignalReceiver(this);
+    connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
+
+    QFuture<void> f = QtConcurrent::run([=] {
+        double good, slow, bad;
+        x->acquireDevice(dev);
+        x->checkmedia(&good, &slow, &bad);
+        x->releaseDevice();
+    });
+
+    QTRY_VERIFY_WITH_TIMEOUT(st == DISOMaster::JobStatus::Finished, 300000);
+    f.waitForFinished();
+    delete r;
+    delete x;
+}
+
 QTEST_MAIN(TestDISOMaster)

@@ -51,6 +51,7 @@ private Q_SLOTS:
     void test_writeFiles();
     void test_erase();
     void test_isoWrite();
+    void test_checkMedia();
 
 };
 

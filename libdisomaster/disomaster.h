@@ -52,6 +52,7 @@ struct DeviceProperty
     MediaType media;
     quint64 data;
     quint64 avail;
+    quint64 datablocks;
     QList<QString> writespeed;
     QString devid;
     QString volid;
@@ -121,7 +122,7 @@ public:
     void removeStagingFiles(const QList<QUrl> filelist);
     void commit(int speed = 0, bool closeSession = false, QString volId = "ISOIMAGE");
     void erase();
-    //void verify();
+    void checkmedia(double *qgood, double *qslow, double *qbad);
 
     void dumpISO(const QUrl isopath);
     void writeISO(const QUrl isopath, int speed = 0);
