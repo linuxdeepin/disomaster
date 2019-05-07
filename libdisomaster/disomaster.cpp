@@ -183,11 +183,11 @@ void DISOMaster::commit(int speed, bool closeSession, QString volId)
     XORRISO_OPT(volid, d->xorriso, volId.toUtf8().data(), 0);
     JOBFAILED_IF(r, d->xorriso);
 
-    for (auto it = d->files.keyBegin(); it != d->files.keyEnd(); ++it) {
+    for (auto it = d->files.begin(); it != d->files.end(); ++it) {
         XORRISO_OPT(
             map, d->xorriso,
-            it->toString().toUtf8().data(),
-            d->files[*it].toString().toUtf8().data(),
+            it.key().toString().toUtf8().data(),
+            it.value().toString().toUtf8().data(),
             0
         );
         JOBFAILED_IF(r, d->xorriso);
@@ -208,6 +208,56 @@ void DISOMaster::erase()
     int r;
     XORRISO_OPT(blank, d->xorriso, PCHAR("as_needed"), 0);
     JOBFAILED_IF(r, d->xorriso);
+}
+
+void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
+{
+    Q_D(DISOMaster);
+    Q_EMIT jobStatusChanged(JobStatus::Running, 0);
+
+    int r, ac, avail;
+    int dummy = 0;
+    char **av;
+
+    getDeviceProperty();
+    XORRISO_OPT(check_media, d->xorriso, 0, nullptr, &dummy, 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    quint64 ngood = 0;
+    quint64 nslow = 0;
+    quint64 nbad = 0;
+
+    do {
+        Xorriso_sieve_get_result(d->xorriso, PCHAR("Media region :"), &ac, &av, &avail, 0);
+        if (ac == 3) {
+            quint64 szblk = QString(av[1]).toLongLong();
+            if (av[2][0] == '-') {
+                nbad += szblk;
+            } else if (av[2][0] == '0') {
+                ngood += szblk;
+            } else {
+                if (QString(av[2]).indexOf("slow") != -1) {
+                    nslow += szblk;
+                } else {
+                    ngood += szblk;
+                }
+            }
+        }
+        Xorriso__dispose_words(&ac, &av);
+    } while (avail > 0);
+
+    if (qgood) {
+        *qgood = 1. * ngood / d->dev[d->curdev].datablocks;
+    }
+    if (qslow) {
+        *qslow = 1. * nslow / d->dev[d->curdev].datablocks;
+    }
+    if (qbad) {
+        *qbad = 1. * nbad / d->dev[d->curdev].datablocks;
+    }
+
+    Q_EMIT jobStatusChanged(DISOMaster::JobStatus::Finished, 0);
+
 }
 
 void DISOMaster::dumpISO(const QUrl isopath)
@@ -286,6 +336,7 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
     Xorriso_sieve_get_result(xorriso, PCHAR("Media summary:"), &ac, &av, &avail, 0);
     if (ac == 4) {
         const QString units = "kmg";
+        dev[curdev].datablocks = atoll(av[1]);
         dev[curdev].data = atof(av[2]) * (1 << ((units.indexOf(*(QString(av[2]).rbegin())) + 1) * 10));
         dev[curdev].avail = atof(av[3]) * (1 << ((units.indexOf(*(QString(av[3]).rbegin())) + 1) * 10));
     }
@@ -319,17 +370,21 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     QString msg(text);
     msg = msg.trimmed();
 
-    //fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
+    fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
+
+    //closing session
     if (msg.indexOf("UPDATE : Closing track/session.") != -1) {
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Stalled, 1);
         return;
     }
 
+    //stalled
     if (msg.indexOf("UPDATE : Thank you for being patient.") != -1) {
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Stalled, 0);
         return;
     }
 
+    //cdrecord / blanking
     QRegularExpression r("([0-9.]*)%\\s*(fifo|done)");
     QRegularExpressionMatch m = r.match(msg);
     if (m.hasMatch()) {
@@ -337,10 +392,19 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
     }
 
+    //commit
     r = QRegularExpression("([0-9]*)\\s*of\\s*([0-9]*) MB written");
     m = r.match(msg);
     if (m.hasMatch()) {
         double percentage = 100. * m.captured(1).toDouble() / m.captured(2).toDouble();
+        Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
+    }
+
+    //check media
+    r = QRegularExpression("([0-9]*) blocks read in ([0-9]*) seconds , ([0-9.]*)x");
+    m = r.match(msg);
+    if (m.hasMatch()) {
+        double percentage = 100. * m.captured(1).toDouble() / dev[curdev].datablocks;
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
     }
 
