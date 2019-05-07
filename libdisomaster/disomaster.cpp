@@ -97,9 +97,8 @@ bool DISOMaster::acquireDevice(QString dev)
         d->files.clear();
         d->curdev = dev;
 
-        Xorriso_set_problem_status(d->xorriso, PCHAR(""), 0);
-        int r = Xorriso_option_dev(d->xorriso, dev.toUtf8().data(), 3);
-        r = Xorriso_eval_problem_status(d->xorriso, r, 0);
+        int r;
+        XORRISO_OPT(dev, d->xorriso, dev.toUtf8().data(), 3);
         if (r <= 0) {
             d->curdev = "";
             return false;
@@ -290,6 +289,11 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
     av[5] = strdup(isopath.path().toUtf8().data());
     XORRISO_OPT(as, d->xorriso, 6, av, &dummy, 1);
     JOBFAILED_IF(r, d->xorriso);
+
+    //-as cdrecord releases the device automatically.
+    //we don't want that.
+    acquireDevice(d->curdev);
+
     for (int i = 0; i < 6; ++i) {
         free(av[i]);
     }
@@ -380,7 +384,7 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     QString msg(text);
     msg = msg.trimmed();
 
-    fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
+    //fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
 
     //closing session
     if (msg.indexOf("UPDATE : Closing track/session.") != -1) {
