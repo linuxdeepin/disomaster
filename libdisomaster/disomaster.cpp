@@ -48,6 +48,7 @@ private:
     XorrisO *xorriso;
     QHash<QUrl, QUrl> files;
     QHash<QString, DeviceProperty> dev;
+    QStringList xorrisomsg;
     QString curdev;
     DISOMaster *q_ptr;
     Q_DECLARE_PUBLIC(DISOMaster)
@@ -141,6 +142,14 @@ void DISOMaster::nullifyDevicePropertyCache(QString dev)
     }
 }
 
+QStringList DISOMaster::getInfoMessages()
+{
+    Q_D(DISOMaster);
+    QStringList ret = d->xorrisomsg;
+    d->xorrisomsg.clear();
+    return ret;
+}
+
 void DISOMaster::stageFiles(const QHash<QUrl, QUrl> filelist)
 {
     Q_D(DISOMaster);
@@ -168,6 +177,7 @@ void DISOMaster::commit(int speed, bool closeSession, QString volId)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
+    d->xorrisomsg.clear();
 
     QString spd = QString::number(speed) + "k";
     if (speed == 0) {
@@ -180,6 +190,9 @@ void DISOMaster::commit(int speed, bool closeSession, QString volId)
     JOBFAILED_IF(r, d->xorriso);
 
     XORRISO_OPT(volid, d->xorriso, volId.toUtf8().data(), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(overwrite, d->xorriso, PCHAR("off"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
     for (auto it = d->files.begin(); it != d->files.end(); ++it) {
@@ -203,6 +216,7 @@ void DISOMaster::erase()
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Running, 0);
+    d->xorrisomsg.clear();
 
     int r;
     XORRISO_OPT(blank, d->xorriso, PCHAR("as_needed"), 0);
@@ -213,6 +227,7 @@ void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Running, 0);
+    d->xorrisomsg.clear();
 
     int r, ac, avail;
     int dummy = 0;
@@ -272,6 +287,7 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
+    d->xorrisomsg.clear();
     QString spd = QString::number(speed) + "k";
     if (speed == 0) {
         spd = "0";
@@ -385,6 +401,7 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     msg = msg.trimmed();
 
     //fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
+    xorrisomsg.push_back(msg);
 
     //closing session
     if (msg.indexOf("UPDATE : Closing track/session.") != -1) {

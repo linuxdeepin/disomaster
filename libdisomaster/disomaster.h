@@ -114,6 +114,8 @@ public:
      */
     void nullifyDevicePropertyCache(QString dev);
 
+    QStringList getInfoMessages();
+
     /*
      * Stage files for writing to the disk.
      */
