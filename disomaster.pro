@@ -1,5 +1,8 @@
 TEMPLATE = subdirs
 CONFIG += NO_KEYWORDS
 
-SUBDIRS = libdisomaster\
-    tests
+SUBDIRS = libdisomaster
+
+BUILD_TESTS {
+        SUBDIRS += tests
+}
