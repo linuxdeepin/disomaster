@@ -118,6 +118,12 @@ void DISOMaster::releaseDevice()
     Xorriso_option_end(d->xorriso, 0);
 }
 
+QString DISOMaster::currentDevice()
+{
+    Q_D(DISOMaster);
+    return d->curdev;
+}
+
 DeviceProperty DISOMaster::getDeviceProperty()
 {
     Q_D(DISOMaster);

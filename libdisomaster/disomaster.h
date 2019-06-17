@@ -90,9 +90,10 @@ public:
      */
     bool acquireDevice(QString dev);
     /*
-     * Release a device.
+     * Release the device currently held.
      */
     void releaseDevice();
+    QString currentDevice();
 
     /*
      * Get the property of the acquired device.
