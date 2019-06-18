@@ -119,9 +119,9 @@ void DISOMaster::releaseDevice()
     Xorriso_option_end(d->xorriso, 0);
 }
 
-QString DISOMaster::currentDevice()
+QString DISOMaster::currentDevice() const
 {
-    Q_D(DISOMaster);
+    Q_D(const DISOMaster);
     return d->curdev;
 }
 
@@ -132,9 +132,9 @@ DeviceProperty DISOMaster::getDeviceProperty()
     return d->dev[d->curdev];
 }
 
-DeviceProperty DISOMaster::getDevicePropertyCached(QString dev)
+DeviceProperty DISOMaster::getDevicePropertyCached(QString dev) const
 {
-    Q_D(DISOMaster);
+    Q_D(const DISOMaster);
     if (d->dev.find(dev) != d->dev.end()) {
         return d->dev[dev];
     }
@@ -263,7 +263,7 @@ void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
             } else if (av[2][0] == '0') {
                 ngood += szblk;
             } else {
-                if (QString(av[2]).indexOf("slow") != -1) {
+                if (QString(av[2]).contains("slow")) {
                     nslow += szblk;
                 } else {
                     ngood += szblk;
@@ -379,7 +379,7 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
 
     Xorriso_sieve_get_result(xorriso, PCHAR("Media status :"), &ac, &av, &avail, 0);
     if (ac == 1) {
-        dev[curdev].formatted = QString(av[0]).indexOf("is blank") != -1;
+        dev[curdev].formatted = QString(av[0]).contains("is blank");
     }
     Xorriso__dispose_words(&ac, &av);
 
@@ -417,13 +417,13 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     xorrisomsg.push_back(msg);
 
     //closing session
-    if (msg.indexOf("UPDATE : Closing track/session.") != -1) {
+    if (msg.contains("UPDATE : Closing track/session.")) {
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Stalled, 1);
         return;
     }
 
     //stalled
-    if (msg.indexOf("UPDATE : Thank you for being patient.") != -1) {
+    if (msg.contains("UPDATE : Thank you for being patient.")) {
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Stalled, 0);
         return;
     }
@@ -461,8 +461,9 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
         curspeed.clear();
     }
 
-    if (msg.indexOf("Blanking done") != -1 ||
-        msg.indexOf(QRegularExpression("Writing to .* completed successfully.")) != -1) {
+    //operation complete
+    if (msg.contains("Blanking done") ||
+        msg.contains(QRegularExpression("Writing to .* completed successfully."))) {
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Finished, 0);
     }
 }
