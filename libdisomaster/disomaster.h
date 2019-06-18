@@ -93,7 +93,7 @@ public:
      * Release the device currently held.
      */
     void releaseDevice();
-    QString currentDevice();
+    QString currentDevice() const;
 
     /*
      * Get the property of the acquired device.
@@ -105,7 +105,7 @@ public:
      * And yes, the property returned by this function may not
      * reflect the current status of the device.
      */
-    DeviceProperty getDevicePropertyCached(QString dev);
+    DeviceProperty getDevicePropertyCached(QString dev) const;
 
     /*
      * Nullify cached device property for a drive.
