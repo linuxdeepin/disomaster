@@ -25,12 +25,12 @@
 
 using namespace DISOMasterNS;
 
-TestSignalReceiver::TestSignalReceiver(TestDISOMaster *parent) : QObject(parent), p(parent)
+TestSignalReceiver::TestSignalReceiver(DISOMaster *_d, TestDISOMaster *parent) : QObject(parent), p(parent), d(_d)
 {
 }
 void TestSignalReceiver::updateJobStatus(DISOMaster::JobStatus status, int progress)
 {
-    fprintf(stderr, "status update: %d %d\n", status, progress);
+    fprintf(stderr, "status update: %d %d, speed: %s\n", status, progress, d->getCurrentSpeed().toUtf8().data());
     p->st = status;
     p->p = progress;
 }
@@ -63,7 +63,7 @@ void TestDISOMaster::test_writeFiles()
 
     st = DISOMaster::JobStatus::Idle;
     DISOMaster *x = new DISOMaster;
-    TestSignalReceiver *r = new TestSignalReceiver(this);
+    TestSignalReceiver *r = new TestSignalReceiver(x, this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
 
     QFuture<void> f = QtConcurrent::run([=] {
@@ -89,7 +89,7 @@ void TestDISOMaster::test_erase()
 
     st = DISOMaster::JobStatus::Idle;
     DISOMaster *x = new DISOMaster;
-    TestSignalReceiver *r = new TestSignalReceiver(this);
+    TestSignalReceiver *r = new TestSignalReceiver(x, this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
 
     QFuture<void> f = QtConcurrent::run([=] {
@@ -113,7 +113,7 @@ void TestDISOMaster::test_isoWrite()
 
     st = DISOMaster::JobStatus::Idle;
     DISOMaster *x = new DISOMaster;
-    TestSignalReceiver *r = new TestSignalReceiver(this);
+    TestSignalReceiver *r = new TestSignalReceiver(x, this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
 
     QFuture<void> f = QtConcurrent::run([=] {
@@ -134,7 +134,7 @@ void TestDISOMaster::test_checkMedia()
     const QString dev = QString(qgetenv("DISOMASTERTEST_DEVICE"));
     st = DISOMaster::JobStatus::Idle;
     DISOMaster *x = new DISOMaster;
-    TestSignalReceiver *r = new TestSignalReceiver(this);
+    TestSignalReceiver *r = new TestSignalReceiver(x, this);
     connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
 
     QFuture<void> f = QtConcurrent::run([=] {

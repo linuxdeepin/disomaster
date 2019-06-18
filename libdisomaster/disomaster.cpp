@@ -50,6 +50,7 @@ private:
     QHash<QString, DeviceProperty> dev;
     QStringList xorrisomsg;
     QString curdev;
+    QString curspeed;
     DISOMaster *q_ptr;
     Q_DECLARE_PUBLIC(DISOMaster)
 
@@ -154,6 +155,12 @@ QStringList DISOMaster::getInfoMessages()
     QStringList ret = d->xorrisomsg;
     d->xorrisomsg.clear();
     return ret;
+}
+
+QString DISOMaster::getCurrentSpeed() const
+{
+    Q_D(const DISOMaster);
+    return d->curspeed;
 }
 
 void DISOMaster::stageFiles(const QHash<QUrl, QUrl> filelist)
@@ -443,6 +450,15 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     if (m.hasMatch()) {
         double percentage = 100. * m.captured(1).toDouble() / dev[curdev].datablocks;
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
+    }
+
+    //current speed
+    r = QRegularExpression("([0-9]*\\.[0-9]x)[bBcCdD.]");
+    m = r.match(msg);
+    if (m.hasMatch()) {
+        curspeed = m.captured(1);
+    } else {
+        curspeed.clear();
     }
 
     if (msg.indexOf("Blanking done") != -1 ||
