@@ -116,6 +116,7 @@ public:
     void nullifyDevicePropertyCache(QString dev);
 
     QStringList getInfoMessages();
+    QString getCurrentSpeed() const;
 
     /*
      * Stage files for writing to the disk.

@@ -31,11 +31,12 @@ class TestSignalReceiver: public QObject
 {
     Q_OBJECT
 public:
-    explicit TestSignalReceiver(TestDISOMaster *parent = nullptr);
+    explicit TestSignalReceiver(DISOMasterNS::DISOMaster *_d, TestDISOMaster *parent = nullptr);
 public Q_SLOTS:
     void updateJobStatus(DISOMasterNS::DISOMaster::JobStatus status, int progress);
 private:
-    TestDISOMaster* p;
+    TestDISOMaster *p;
+    DISOMasterNS::DISOMaster *d;
 };
 
 class TestDISOMaster : public QObject
