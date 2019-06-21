@@ -60,6 +60,17 @@ public:
     void messageReceived(int type, char *text);
 };
 
+/*!
+ * \class DISOMaster
+ * \brief The DISOMaster class is a simple wrapper around libisoburn.
+ *
+ * DISOMaster provides basic optical drive operation and on-disc
+ * filesystem manipulation.
+ *
+ * All method calls in this class are synchronous: they do not
+ * return until the operation completes. Note the signal is emitted
+ * from a separate thread (while the job is actually running).
+ */
 DISOMaster::DISOMaster(QObject *parent):
     QObject(parent),
     d_ptr(new DISOMasterPrivate(this))
@@ -91,6 +102,19 @@ DISOMaster::~DISOMaster()
     }
 }
 
+/*!
+ * \brief Acquire an optical drive.
+ * \param dev The device identifier of the drive to be
+ * acquired (e.g. "/dev/sr0")
+ *
+ * Unless otherwise stated, all methods below requires
+ * a drive acquired.
+ * DISOMaster will take exclusive control of the device
+ * until it is released by calling releaseDevice().
+ *
+ * \return true on success. If this function fails, it
+ * is usually because the device is currently in use.
+ */
 bool DISOMaster::acquireDevice(QString dev)
 {
     Q_D(DISOMaster);
@@ -111,6 +135,9 @@ bool DISOMaster::acquireDevice(QString dev)
     return false;
 }
 
+/*!
+ * \brief Release the drive currently held.
+ */
 void DISOMaster::releaseDevice()
 {
     Q_D(DISOMaster);
@@ -119,12 +146,26 @@ void DISOMaster::releaseDevice()
     Xorriso_option_end(d->xorriso, 0);
 }
 
+/*!
+ * \brief Get the drive currently held (if any).
+ * \return the device identifier of the drive currently held.
+ * If no drive is currently held, returns an empty string.
+ */
 QString DISOMaster::currentDevice() const
 {
     Q_D(const DISOMaster);
     return d->curdev;
 }
 
+/*!
+ * \brief Get the property of the currently acquired device.
+ *
+ * This function requires a disc spin-up and may take a while.
+ * The result will be automatically cached.
+ *
+ * \return the property of the acquired device.
+ * \sa getDevicePropertyCached(), nullifyDevicePropertyCache(QString dev)
+ */
 DeviceProperty DISOMaster::getDeviceProperty()
 {
     Q_D(DISOMaster);
@@ -132,6 +173,18 @@ DeviceProperty DISOMaster::getDeviceProperty()
     return d->dev[d->curdev];
 }
 
+/*!
+ * \brief Get cached property of a device.
+ *
+ * Returns the property of a device when it was acquired
+ * last time. Does not require a device acquired.
+ * If the device has no property cached, this function will return an
+ * invalid device property, which you can tell by testing whether the
+ * devid field is empty.
+ *
+ * \return the cached property.
+ * \sa getDeviceProperty(), nullifyDevicePropertyCache(QString dev)
+ */
 DeviceProperty DISOMaster::getDevicePropertyCached(QString dev) const
 {
     Q_D(const DISOMaster);
@@ -141,6 +194,13 @@ DeviceProperty DISOMaster::getDevicePropertyCached(QString dev) const
     return DeviceProperty();
 }
 
+/*!
+ * \brief Nullify cached device property for a drive.
+ *
+ * Call this after a disc swap (or whenever you are sure
+ * the previously cached device property is no longer
+ * up to date).
+ */
 void DISOMaster::nullifyDevicePropertyCache(QString dev)
 {
     Q_D(DISOMaster);
@@ -149,6 +209,13 @@ void DISOMaster::nullifyDevicePropertyCache(QString dev)
     }
 }
 
+/*!
+ * \brief Get a list of messages from xorriso.
+ *
+ * This will clear the internal message buffer.
+ *
+ * \return a list of messages from xorriso since the last command.
+ */
 QStringList DISOMaster::getInfoMessages()
 {
     Q_D(DISOMaster);
@@ -157,24 +224,43 @@ QStringList DISOMaster::getInfoMessages()
     return ret;
 }
 
+/*!
+ * \brief Get the current data transfer rate.
+ *
+ * The value is a multiplier of base speed of the current media.
+ *
+ * \return a string containing a multiplier (e.g. "10.0x").
+ */
 QString DISOMaster::getCurrentSpeed() const
 {
     Q_D(const DISOMaster);
     return d->curspeed;
 }
 
+/*!
+ * \brief Stage files for burning.
+ * \param filelist A map from local files to on-disc files.
+ */
 void DISOMaster::stageFiles(const QHash<QUrl, QUrl> filelist)
 {
     Q_D(DISOMaster);
     d->files.unite(filelist);
 }
 
+/*!
+ * \brief Get all files currently staged for burning.
+ * \return a map from local files to on-disc files.
+ */
 const QHash<QUrl, QUrl> &DISOMaster::stagingFiles() const
 {
     Q_D(const DISOMaster);
     return d->files;
 }
 
+/*!
+ * \brief Unstage files for burning.
+ * \param filelist the local files to unstage.
+ */
 void DISOMaster::removeStagingFiles(const QList<QUrl> filelist)
 {
     Q_D(DISOMaster);
@@ -186,6 +272,15 @@ void DISOMaster::removeStagingFiles(const QList<QUrl> filelist)
     }
 }
 
+/*!
+ * \brief Burn all staged files to the disc.
+ * \param speed desired writing speed in kilobytes per second
+ * \param closeSession if true, closes the session after files are burned
+ * \param volId volume name of the disc
+ *
+ * closeSession will be ignored if the disc is reusable.
+ * The staging file list will be cleared afterwards.
+ */
 void DISOMaster::commit(int speed, bool closeSession, QString volId)
 {
     Q_D(DISOMaster);
@@ -225,6 +320,9 @@ void DISOMaster::commit(int speed, bool closeSession, QString volId)
     JOBFAILED_IF(r, d->xorriso);
 }
 
+/*!
+ * \brief Erase the disc (if it's not already blank).
+ */
 void DISOMaster::erase()
 {
     Q_D(DISOMaster);
@@ -236,6 +334,14 @@ void DISOMaster::erase()
     JOBFAILED_IF(r, d->xorriso);
 }
 
+/*!
+ * \brief Perform a data integration check for the disc.
+ * \param qgood if not null, will be set to the portion of sectors that can be read fast.
+ * \param qslow if not null, will be set to the portion of sectors that can still be read, but slowly.
+ * \param qbad if not null, will be set to the portion of sectors that are corrupt.
+ *
+ * The values returned should add up to 1 (or very close to 1).
+ */
 void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
 {
     Q_D(DISOMaster);
@@ -289,6 +395,9 @@ void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
 
 }
 
+/*!
+ * \brief Dump the content of the disc to a file. (unimplemented)
+ */
 void DISOMaster::dumpISO(const QUrl isopath)
 {
     Q_D(DISOMaster);
@@ -296,6 +405,11 @@ void DISOMaster::dumpISO(const QUrl isopath)
     //unimplemented
 }
 
+/*!
+ * \brief Burn an image to the disc.
+ * \param isopath the image file to be burnt.
+ * \param speed the desired write speed in kilobytes per second.
+ */
 void DISOMaster::writeISO(const QUrl isopath, int speed)
 {
     Q_D(DISOMaster);

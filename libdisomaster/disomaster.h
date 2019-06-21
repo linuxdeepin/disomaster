@@ -59,12 +59,6 @@ struct DeviceProperty
 };
 
 class DISOMasterPrivate;
-/*
- * All method calls below are synchronous: they do not
- * return until the operation has completed. Note the
- * signal is emitted from a separate thread (while the
- * job is actually running).
- */
 class DISOMaster : public QObject
 {
     Q_OBJECT
@@ -82,45 +76,17 @@ public:
     explicit DISOMaster(QObject *parent = nullptr);
     ~DISOMaster();
 
-    /*
-     * Acquire a certain device. (almost) All methods below
-     * require a device acquired.
-     * DISOMaster will take exclusive control of the device
-     * until it is released by calling releaseDevice().
-     */
     bool acquireDevice(QString dev);
-    /*
-     * Release the device currently held.
-     */
     void releaseDevice();
     QString currentDevice() const;
 
-    /*
-     * Get the property of the acquired device.
-     */
     DeviceProperty getDeviceProperty();
-    /*
-     * Returns the property of a device when it was acquired
-     * last time. Does **not** require a device acquired.
-     * And yes, the property returned by this function may not
-     * reflect the current status of the device.
-     */
     DeviceProperty getDevicePropertyCached(QString dev) const;
-
-    /*
-     * Nullify cached device property for a drive.
-     * Call this after a disc swap (or whenever you are sure
-     * the previously cached device property is no longer
-     * up to date).
-     */
     void nullifyDevicePropertyCache(QString dev);
 
     QStringList getInfoMessages();
     QString getCurrentSpeed() const;
 
-    /*
-     * Stage files for writing to the disk.
-     */
     void stageFiles(const QHash<QUrl, QUrl> filelist);
     const QHash<QUrl, QUrl> &stagingFiles() const;
     void removeStagingFiles(const QList<QUrl> filelist);
