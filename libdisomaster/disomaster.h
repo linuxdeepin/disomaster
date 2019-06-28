@@ -48,13 +48,21 @@ enum MediaType
 
 struct DeviceProperty
 {
+    /** \brief True when the media in device is blank or false otherwise.*/
     bool formatted;
+    /** \brief Type of media currently in the device.*/
     MediaType media;
+    /** \brief Size of on-disc data in bytes.*/
     quint64 data;
+    /** \brief Available size in bytes.*/
     quint64 avail;
+    /** \brief Size of on-disc data in number of blocks.*/
     quint64 datablocks;
+    /** \brief List of write speeds supported, e.g. "10.0x".*/
     QList<QString> writespeed;
+    /** \brief Device identifier. Empty if the device property is invalid.*/
     QString devid;
+    /** \brief Volume name of the disc.*/
     QString volid;
 };
 
@@ -98,6 +106,13 @@ public:
     void writeISO(const QUrl isopath, int speed = 0);
 
 Q_SIGNALS:
+    /**
+     * \brief Indicates a change of current job status.
+     *
+     * \param status Current job status.
+     * \param progress Job progress in percentage if status is running.
+     *        Type of stalled work if status is stalled (1 = closing session, 0 = others).
+     */
     void jobStatusChanged(DISOMasterNS::DISOMaster::JobStatus status, int progress);
 
 private:
