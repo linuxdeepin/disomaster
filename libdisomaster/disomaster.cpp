@@ -33,7 +33,7 @@
     if (r <= 0) { \
         Xorriso_option_end(x, 1); \
         Q_EMIT jobStatusChanged(JobStatus::Failed, -1); \
-        return; \
+        return false; \
     }
 
 int XorrisoResultHandler(void *handle, char *text);
@@ -277,11 +277,12 @@ void DISOMaster::removeStagingFiles(const QList<QUrl> filelist)
  * \param speed desired writing speed in kilobytes per second
  * \param closeSession if true, closes the session after files are burned
  * \param volId volume name of the disc
+ * \return true on success, false on failure
  *
  * closeSession will be ignored if the disc is reusable.
  * The staging file list will be cleared afterwards.
  */
-void DISOMaster::commit(int speed, bool closeSession, QString volId)
+bool DISOMaster::commit(int speed, bool closeSession, QString volId)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
@@ -318,12 +319,15 @@ void DISOMaster::commit(int speed, bool closeSession, QString volId)
 
     XORRISO_OPT(commit, d->xorriso, 0);
     JOBFAILED_IF(r, d->xorriso);
+
+    return true;
 }
 
 /*!
  * \brief Erase the disc (if it's not already blank).
+ * \return true on success, false on failure
  */
-void DISOMaster::erase()
+bool DISOMaster::erase()
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Running, 0);
@@ -332,6 +336,8 @@ void DISOMaster::erase()
     int r;
     XORRISO_OPT(blank, d->xorriso, PCHAR("as_needed"), 0);
     JOBFAILED_IF(r, d->xorriso);
+
+    return true;
 }
 
 /*!
@@ -339,10 +345,11 @@ void DISOMaster::erase()
  * \param qgood if not null, will be set to the portion of sectors that can be read fast.
  * \param qslow if not null, will be set to the portion of sectors that can still be read, but slowly.
  * \param qbad if not null, will be set to the portion of sectors that are corrupt.
+ * \return true on success, false on failure (if for some reason the disc could not be checked)
  *
  * The values returned should add up to 1 (or very close to 1).
  */
-void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
+bool DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Running, 0);
@@ -393,6 +400,7 @@ void DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
 
     Q_EMIT jobStatusChanged(DISOMaster::JobStatus::Finished, 0);
 
+    return true;
 }
 
 /*!
@@ -409,8 +417,9 @@ void DISOMaster::dumpISO(const QUrl isopath)
  * \brief Burn an image to the disc.
  * \param isopath the image file to be burnt.
  * \param speed the desired write speed in kilobytes per second.
+ * \return true on success, false on failure
  */
-void DISOMaster::writeISO(const QUrl isopath, int speed)
+bool DISOMaster::writeISO(const QUrl isopath, int speed)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
@@ -441,6 +450,8 @@ void DISOMaster::writeISO(const QUrl isopath, int speed)
         free(av[i]);
     }
     delete []av;
+
+    return true;
 }
 
 void DISOMasterPrivate::getCurrentDeviceProperty()
@@ -527,7 +538,7 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     QString msg(text);
     msg = msg.trimmed();
 
-    //fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
+    fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
     xorrisomsg.push_back(msg);
 
     //closing session
