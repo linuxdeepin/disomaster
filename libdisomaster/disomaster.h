@@ -98,12 +98,12 @@ public:
     void stageFiles(const QHash<QUrl, QUrl> filelist);
     const QHash<QUrl, QUrl> &stagingFiles() const;
     void removeStagingFiles(const QList<QUrl> filelist);
-    void commit(int speed = 0, bool closeSession = false, QString volId = "ISOIMAGE");
-    void erase();
-    void checkmedia(double *qgood, double *qslow, double *qbad);
+    bool commit(int speed = 0, bool closeSession = false, QString volId = "ISOIMAGE");
+    bool erase();
+    bool checkmedia(double *qgood, double *qslow, double *qbad);
 
     void dumpISO(const QUrl isopath);
-    void writeISO(const QUrl isopath, int speed = 0);
+    bool writeISO(const QUrl isopath, int speed = 0);
 
 Q_SIGNALS:
     /**
