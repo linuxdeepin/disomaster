@@ -35,13 +35,17 @@ isEmpty(PREFIX) {
     PREFIX = /usr
 }
 
+isEmpty(LIBDIR) {
+    LIBDIR = $$PREFIX/lib
+}
+
 includes.files += disomaster.h
 includes.path = $$PREFIX/include/disomaster
 
 QMAKE_PKGCONFIG_NAME = libdisomaster
 QMAKE_PKGCONFIG_DESCRIPTION = Wrapper class for libisoburn
 QMAKE_PKGCONFIG_INCDIR = $$includes.path
-QMAKE_PKGCONFIG_LIBDIR = $$target.path
+QMAKE_PKGCONFIG_LIBDIR = $$LIBDIR
 QMAKE_PKGCONFIG_DESTDIR = pkgconfig
 
 unix {
