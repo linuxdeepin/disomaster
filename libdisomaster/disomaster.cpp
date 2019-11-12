@@ -334,6 +334,7 @@ bool DISOMaster::erase()
     d->xorrisomsg.clear();
 
     int r;
+    XORRISO_OPT(abort_on, d->xorriso, PCHAR("ABORT"), 0);
     XORRISO_OPT(blank, d->xorriso, PCHAR("as_needed"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
