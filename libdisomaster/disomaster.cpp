@@ -304,6 +304,12 @@ bool DISOMaster::commit(int speed, bool closeSession, QString volId)
     XORRISO_OPT(overwrite, d->xorriso, PCHAR("off"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
+    XORRISO_OPT(joliet, d->xorriso, PCHAR("on"), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(rockridge, d->xorriso, PCHAR("on"), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
     for (auto it = d->files.begin(); it != d->files.end(); ++it) {
         XORRISO_OPT(
             map, d->xorriso,
