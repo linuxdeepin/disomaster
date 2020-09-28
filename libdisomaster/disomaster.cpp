@@ -47,6 +47,7 @@ private:
     DISOMasterPrivate(DISOMaster *q): q_ptr(q) {}
     XorrisO *xorriso;
     QHash<QUrl, QUrl> files;
+    QStringList discFiles;
     QHash<QString, DeviceProperty> dev;
     QStringList xorrisomsg;
     QString curdev;
@@ -257,6 +258,12 @@ const QHash<QUrl, QUrl> &DISOMaster::stagingFiles() const
     return d->files;
 }
 
+void DISOMaster::setDiscFiles(const QStringList &files)
+{
+    Q_D(DISOMaster);
+    d->discFiles = files;
+}
+
 /*!
  * \brief Unstage files for burning.
  * \param filelist the local files to unstage.
@@ -306,10 +313,17 @@ bool DISOMaster::commit(int speed, bool closeSession, QString volId)
 
     XORRISO_OPT(joliet, d->xorriso, PCHAR("on"), 0);
     JOBFAILED_IF(r, d->xorriso);
-    
+
     XORRISO_OPT(rockridge, d->xorriso, PCHAR("on"), 0);
     JOBFAILED_IF(r, d->xorriso);
-    
+
+    // 对光盘中已有的文件处理 ;1 后缀。move函数中传入光盘中不存在的文件时会报错，但是不影响刻录流程
+    for (int i = 0; i < d->discFiles.count(); i++) {
+        QString src = d->discFiles[i];
+        QString desc = d->discFiles[i].remove(";1");
+        XORRISO_OPT(move, d->xorriso, src.toUtf8().data(), desc.toUtf8().data(), 0);
+    }
+
     for (auto it = d->files.begin(); it != d->files.end(); ++it) {
         XORRISO_OPT(
             map, d->xorriso,
