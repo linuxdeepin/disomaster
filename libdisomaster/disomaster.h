@@ -97,6 +97,7 @@ public:
 
     void stageFiles(const QHash<QUrl, QUrl> filelist);
     const QHash<QUrl, QUrl> &stagingFiles() const;
+    void setDiscFiles(const QStringList &files);
     void removeStagingFiles(const QList<QUrl> filelist);
     bool commit(int speed = 0, bool closeSession = false, QString volId = "ISOIMAGE");
     bool erase();
