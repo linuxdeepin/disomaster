@@ -21,6 +21,9 @@
 #include "disomaster.h"
 #include "xorriso.h"
 #include <QRegularExpression>
+#include <QDebug>
+#include <QThread>
+#include <QTime>
 
 #define PCHAR(s) (char*)(s)
 
@@ -55,7 +58,18 @@ private:
     DISOMaster *q_ptr;
     Q_DECLARE_PUBLIC(DISOMaster)
 
+    QString prefixPath;
+    QStringList lstDirs;
+    QStringList shouldRenamedFiles;
+    QTime lastRecvMsgTime;
+
     void getCurrentDeviceProperty();
+    /**
+     * @brief parseFilePathByMsg，解析调用 ls、cd 命令返回的消息，从中提取 ls 等命令的结果
+     * @param msg
+     * @return 返回false表示未能处理该信息
+     */
+    bool parseFilePathByMsg(int type, QString msg);
 
 public:
     void messageReceived(int type, char *text);
@@ -258,12 +272,6 @@ const QHash<QUrl, QUrl> &DISOMaster::stagingFiles() const
     return d->files;
 }
 
-void DISOMaster::setDiscFiles(const QStringList &files)
-{
-    Q_D(DISOMaster);
-    d->discFiles = files;
-}
-
 /*!
  * \brief Unstage files for burning.
  * \param filelist the local files to unstage.
@@ -317,10 +325,23 @@ bool DISOMaster::commit(int speed, bool closeSession, QString volId)
     XORRISO_OPT(rockridge, d->xorriso, PCHAR("on"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
-    // 对光盘中已有的文件处理 ;1 后缀。move函数中传入光盘中不存在的文件时会报错，但是不影响刻录流程
-    for (int i = 0; i < d->discFiles.count(); i++) {
-        QString src = d->discFiles[i];
-        QString desc = d->discFiles[i].remove(";1");
+    // 开始遍历光盘内部目录信息，寻找含 ;1 结尾的文件
+    Xorriso_option_stdio_sync(d->xorriso, PCHAR("end"), 0);
+    int idx = 0;
+    int argc = 1;
+    char *argv[] = {"."};
+    XORRISO_OPT(lsi, d->xorriso, argc, argv, &idx, 1);
+    XORRISO_OPT(cdi, d->xorriso, PCHAR("/"), 0);
+    d->lastRecvMsgTime.start();
+    while (d->lastRecvMsgTime.elapsed() < 3000) {
+        QThread::msleep(100);
+    }
+    XORRISO_OPT(cdi, d->xorriso, PCHAR("/"), 0);
+
+    // 去除末尾的 ;1 后缀
+    for (int i = 0; i < d->shouldRenamedFiles.count(); i++) {
+        QString src = d->shouldRenamedFiles[i];
+        QString desc = d->shouldRenamedFiles[i].remove(";1");
         XORRISO_OPT(move, d->xorriso, src.toUtf8().data(), desc.toUtf8().data(), 0);
     }
 
@@ -552,12 +573,70 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
     Xorriso_sieve_clear_results(xorriso, 0);
 }
 
+bool DISOMasterPrivate::parseFilePathByMsg(int type, QString msg)
+{
+    static const QRegularExpression lsOutputs("\'(.*)\'");
+    static const QRegularExpression cdOutputs("\'(.*)\'/");
+    static bool isLastMsgFromCdCmd = false;
+
+    int r;
+
+    if (type == 1) // 只处理 type == 0 的 result 消息
+        return false;
+
+    if (msg.endsWith("\n"))
+        msg.chop(1);
+
+    if ((msg.startsWith("-") || msg.startsWith("d") || msg.startsWith("l")) // 以 -（文件） 或 d（目录开始） 或链接文件 l
+            && msg.endsWith("'")) { // 以 ' 结束
+//        qDebug() << __LINE__ << msg;
+        QRegularExpressionMatch match = lsOutputs.match(msg);
+        if (match.hasMatch()) {
+            QString name = match.captured(0);
+            name = name.mid(1, name.length() - 2); // 去除首尾的 '
+            if (msg.startsWith("d")) {
+                lstDirs << (prefixPath.isEmpty() ? (name) : (prefixPath + "/" + name));
+            } else if ((msg.startsWith("-") || msg.startsWith("l")) && name.endsWith(";1")) {
+                shouldRenamedFiles << (prefixPath.isEmpty() ? (name) : (prefixPath + "/" + name));
+            }
+            isLastMsgFromCdCmd = false;
+            lastRecvMsgTime.restart();
+            return true;
+        }
+    }
+
+    QRegularExpressionMatch cdMatch = cdOutputs.match(msg);
+    if (cdMatch.hasMatch()) {
+        if (!isLastMsgFromCdCmd) {
+            for (int i = lstDirs.count() - 1; i >= 0; i--) {
+                const QString &dir = lstDirs[i];
+                char *argv[] = {};
+                int idx = 0;
+                XORRISO_OPT(cdi, xorriso, dir.toUtf8().data(), 0); // 让工作目录改变，以获取到切换前后的路径
+                XORRISO_OPT(lsi, xorriso, 0, argv, &idx, 1);
+                XORRISO_OPT(cdi, xorriso, PCHAR("../"), 0);
+                lstDirs.removeAt(i);
+            }
+        }
+
+        prefixPath = cdMatch.captured(0);
+        prefixPath = prefixPath.mid(1, prefixPath.length() - 3); // 移除收尾的 ' 和 '/
+//        qDebug() << "cd: =======================================>" << prefixPath;
+        isLastMsgFromCdCmd = true;
+        lastRecvMsgTime.restart();
+        return true;
+    }
+    return false;
+}
+
 void DISOMasterPrivate::messageReceived(int type, char *text)
 {
     Q_Q(DISOMaster);
-    Q_UNUSED(type);
     QString msg(text);
     msg = msg.trimmed();
+
+    if (parseFilePathByMsg(type, text))
+        return;
 
     fprintf(stderr, "msg from xorriso (%s) : %s\n", type ? " info " : "result", msg.toStdString().c_str());
     xorrisomsg.push_back(msg);
