@@ -46,6 +46,18 @@ enum MediaType
     BD_RE
 };
 
+enum BurnOption
+{
+    KeepAppendable = 1,
+    VerifyDatas = 1 << 1,
+    EjectDisc = 1 << 2,             // not used yet.
+    ISO9660Only = 1 << 3,               // default
+    JolietSupport = 1 << 4,         // add joliet extension
+    RockRidgeSupport = 1 << 5,      // add rockridge extension
+    JolietAndRockRidge = 1 << 6,    // add both of them, not used yet
+};
+Q_DECLARE_FLAGS(BurnOptions, BurnOption)
+
 struct DeviceProperty
 {
     /** \brief True when the media in device is blank or false otherwise.*/
@@ -98,7 +110,7 @@ public:
     void stageFiles(const QHash<QUrl, QUrl> filelist);
     const QHash<QUrl, QUrl> &stagingFiles() const;
     void removeStagingFiles(const QList<QUrl> filelist);
-    bool commit(int speed = 0, bool closeSession = false, QString volId = "ISOIMAGE");
+    bool commit(const BurnOptions &opts, int speed = 0, QString volId = "ISOIMAGE");
     bool erase();
     bool checkmedia(double *qgood, double *qslow, double *qbad);
 

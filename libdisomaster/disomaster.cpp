@@ -273,16 +273,13 @@ void DISOMaster::removeStagingFiles(const QList<QUrl> filelist)
 }
 
 /*!
- * \brief Burn all staged files to the disc.
- * \param speed desired writing speed in kilobytes per second
- * \param closeSession if true, closes the session after files are burned
- * \param volId volume name of the disc
- * \return true on success, false on failure
- *
- * closeSession will be ignored if the disc is reusable.
- * The staging file list will be cleared afterwards.
+ * \brief DISOMaster::commit  Burn all staged files to the disc.
+ * \param opts   burning options
+ * \param speed  desired writing speed in kilobytes per second
+ * \param volId  volume name of the disc
+ * \return       true on success, false on failure
  */
-bool DISOMaster::commit(int speed, bool closeSession, QString volId)
+bool DISOMaster::commit(const BurnOptions &opts, int speed/* = 0*/, QString volId/* = "ISOIMAGE"*/)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
@@ -304,10 +301,10 @@ bool DISOMaster::commit(int speed, bool closeSession, QString volId)
     XORRISO_OPT(overwrite, d->xorriso, PCHAR("off"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
-    XORRISO_OPT(joliet, d->xorriso, PCHAR("on"), 0);
+    XORRISO_OPT(joliet, d->xorriso, PCHAR(opts.testFlag(JolietSupport) ? "on" : "off"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
-    XORRISO_OPT(rockridge, d->xorriso, PCHAR("on"), 0);
+    XORRISO_OPT(rockridge, d->xorriso, PCHAR(opts.testFlag(RockRidgeSupport) ? "on" : "off"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
     for (auto it = d->files.begin(); it != d->files.end(); ++it) {
@@ -320,7 +317,7 @@ bool DISOMaster::commit(int speed, bool closeSession, QString volId)
         JOBFAILED_IF(r, d->xorriso);
     }
 
-    XORRISO_OPT(close, d->xorriso, PCHAR(closeSession ? "on" : "off"), 0);
+    XORRISO_OPT(close, d->xorriso, PCHAR(opts.testFlag(KeepAppendable) ? "off" : "on"), 0);
     JOBFAILED_IF(r, d->xorriso);
 
     XORRISO_OPT(commit, d->xorriso, 0);
