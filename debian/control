@@ -5,7 +5,7 @@ Maintainer: Chris Xiong <chirs241097@gmail.com>
 Build-Depends:
  debhelper (>= 9),
  pkg-config,
- qt5-default,
+ qtbase5-dev,
  qt5-qmake,
  libisoburn-dev
 Standards-Version: 3.9.8
@@ -15,9 +15,10 @@ Package: libdisomaster
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: libisoburn wrapper for Qt.
+ A convenient way to burn iso9660 image!
 
 Package: libdisomaster-dev
 Architecture: any
 Depends: libdisomaster, ${misc:Depends}
 Description: Development package for libdisomaster.
-
+ A convenient way to burn iso9660 image!
