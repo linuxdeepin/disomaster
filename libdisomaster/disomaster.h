@@ -51,7 +51,7 @@ enum BurnOption
     KeepAppendable = 1,
     VerifyDatas = 1 << 1,
     EjectDisc = 1 << 2,             // not used yet.
-    ISO9660Only = 1 << 3,               // default
+    ISO9660Only = 1 << 3,           // default
     JolietSupport = 1 << 4,         // add joliet extension
     RockRidgeSupport = 1 << 5,      // add rockridge extension
     JolietAndRockRidge = 1 << 6,    // add both of them, not used yet
