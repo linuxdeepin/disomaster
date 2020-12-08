@@ -111,6 +111,7 @@ public:
     const QHash<QUrl, QUrl> &stagingFiles() const;
     void removeStagingFiles(const QList<QUrl> filelist);
     bool commit(const BurnOptions &opts, int speed = 0, QString volId = "ISOIMAGE");
+    Q_DECL_DEPRECATED_X("Suggest use commit with BurnOptions instead") bool commit(int speed = 0, bool closeSession = false, QString volId = "ISOIMAGE");
     bool erase();
     bool checkmedia(double *qgood, double *qslow, double *qbad);
 

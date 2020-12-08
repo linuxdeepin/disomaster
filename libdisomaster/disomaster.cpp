@@ -326,6 +326,64 @@ bool DISOMaster::commit(const BurnOptions &opts, int speed/* = 0*/, QString volI
     return true;
 }
 
+
+/*!
+ * \brief Burn all staged files to the disc.
+ * \param speed desired writing speed in kilobytes per second
+ * \param closeSession if true, closes the session after files are burned
+ * \param volId volume name of the disc
+ * \return true on success, false on failure
+ *
+ * closeSession will be ignored if the disc is reusable.
+ * The staging file list will be cleared afterwards.
+ */
+bool DISOMaster::commit(int speed, bool closeSession, QString volId)
+{
+    Q_D(DISOMaster);
+    Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
+    d->xorrisomsg.clear();
+
+    QString spd = QString::number(speed) + "k";
+    if (speed == 0) {
+        spd = "0";
+    }
+
+    int r;
+
+    XORRISO_OPT(speed, d->xorriso, spd.toUtf8().data(), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(volid, d->xorriso, volId.toUtf8().data(), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(overwrite, d->xorriso, PCHAR("off"), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(joliet, d->xorriso, PCHAR("on"), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(rockridge, d->xorriso, PCHAR("on"), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    for (auto it = d->files.begin(); it != d->files.end(); ++it) {
+        XORRISO_OPT(
+            map, d->xorriso,
+            it.key().toString().toUtf8().data(),
+            it.value().toString().toUtf8().data(),
+            0
+        );
+        JOBFAILED_IF(r, d->xorriso);
+    }
+
+    XORRISO_OPT(close, d->xorriso, PCHAR(closeSession ? "on" : "off"), 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    XORRISO_OPT(commit, d->xorriso, 0);
+    JOBFAILED_IF(r, d->xorriso);
+
+    return true;
+}
+
 /*!
  * \brief Erase the disc (if it's not already blank).
  * \return true on success, false on failure
