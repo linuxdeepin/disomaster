@@ -8,6 +8,7 @@ QT       -= gui
 
 TARGET = disomaster
 TEMPLATE = lib
+VERSION = 5
 CONFIG += no_keywords link_pkgconfig create_prl no_install_prl create_pc
 
 DEFINES += DISOMASTER_LIBRARY
