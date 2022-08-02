@@ -22,18 +22,18 @@
 #include "xorriso.h"
 #include <QRegularExpression>
 
-#define PCHAR(s) (char*)(s)
+#define PCHAR(s) (char *)(s)
 
-#define XORRISO_OPT(opt, x, ...) \
+#define XORRISO_OPT(opt, x, ...)                 \
     Xorriso_set_problem_status(x, PCHAR(""), 0); \
-    r = Xorriso_option_##opt(x, __VA_ARGS__); \
+    r = Xorriso_option_##opt(x, __VA_ARGS__);    \
     r = Xorriso_eval_problem_status(x, r, 0);
 
-#define JOBFAILED_IF(r, x) \
-    if (r <= 0) { \
-        Xorriso_option_end(x, 1); \
+#define JOBFAILED_IF(r, x)                              \
+    if (r <= 0) {                                       \
+        Xorriso_option_end(x, 1);                       \
         Q_EMIT jobStatusChanged(JobStatus::Failed, -1); \
-        return false; \
+        return false;                                   \
     }
 
 int XorrisoResultHandler(void *handle, char *text);
@@ -44,7 +44,8 @@ namespace DISOMasterNS {
 class DISOMasterPrivate
 {
 private:
-    DISOMasterPrivate(DISOMaster *q): q_ptr(q) {}
+    DISOMasterPrivate(DISOMaster *q)
+        : q_ptr(q) {}
     XorrisO *xorriso;
     QHash<QUrl, QUrl> files;
     QHash<QString, DeviceProperty> dev;
@@ -71,9 +72,9 @@ public:
  * return until the operation completes. Note the signal is emitted
  * from a separate thread (while the job is actually running).
  */
-DISOMaster::DISOMaster(QObject *parent):
-    QObject(parent),
-    d_ptr(new DISOMasterPrivate(this))
+DISOMaster::DISOMaster(QObject *parent)
+    : QObject(parent),
+      d_ptr(new DISOMasterPrivate(this))
 {
     Q_D(DISOMaster);
     int r = Xorriso_new(&d->xorriso, PCHAR("xorriso"), 0);
@@ -279,7 +280,7 @@ void DISOMaster::removeStagingFiles(const QList<QUrl> filelist)
  * \param volId  volume name of the disc
  * \return       true on success, false on failure
  */
-bool DISOMaster::commit(const BurnOptions &opts, int speed/* = 0*/, QString volId/* = "ISOIMAGE"*/)
+bool DISOMaster::commit(const BurnOptions &opts, int speed /* = 0*/, QString volId /* = "ISOIMAGE"*/)
 {
     Q_D(DISOMaster);
     Q_EMIT jobStatusChanged(JobStatus::Stalled, 0);
@@ -309,11 +310,10 @@ bool DISOMaster::commit(const BurnOptions &opts, int speed/* = 0*/, QString volI
 
     for (auto it = d->files.begin(); it != d->files.end(); ++it) {
         XORRISO_OPT(
-            map, d->xorriso,
-            it.key().toString().toUtf8().data(),
-            it.value().toString().toUtf8().data(),
-            0
-        );
+                map, d->xorriso,
+                it.key().toString().toUtf8().data(),
+                it.value().toString().toUtf8().data(),
+                0);
         JOBFAILED_IF(r, d->xorriso);
     }
 
@@ -325,7 +325,6 @@ bool DISOMaster::commit(const BurnOptions &opts, int speed/* = 0*/, QString volI
 
     return true;
 }
-
 
 /*!
  * \brief Burn all staged files to the disc.
@@ -367,11 +366,10 @@ bool DISOMaster::commit(int speed, bool closeSession, QString volId)
 
     for (auto it = d->files.begin(); it != d->files.end(); ++it) {
         XORRISO_OPT(
-            map, d->xorriso,
-            it.key().toString().toUtf8().data(),
-            it.value().toString().toUtf8().data(),
-            0
-        );
+                map, d->xorriso,
+                it.key().toString().toUtf8().data(),
+                it.value().toString().toUtf8().data(),
+                0);
         JOBFAILED_IF(r, d->xorriso);
     }
 
@@ -466,13 +464,34 @@ bool DISOMaster::checkmedia(double *qgood, double *qslow, double *qbad)
 }
 
 /*!
- * \brief Dump the content of the disc to a file. (unimplemented)
+ * \brief Dump the content of the disc to a file
+ *  xorriso -outdev /dev/sr[?] -check_media use=outdev data_to=[path]
+ * \param isopath the image file to be dumped
+ * \return true on success, false on failure
  */
-void DISOMaster::dumpISO(const QUrl isopath)
+bool DISOMaster::dumpISO(const QUrl isopath)
 {
     Q_D(DISOMaster);
-    //use osirrox
-    //unimplemented
+    Q_EMIT jobStatusChanged(JobStatus::Running, 0);
+    d->xorrisomsg.clear();
+
+    Q_ASSERT(!isopath.isEmpty());
+    Q_ASSERT(isopath.isValid());
+
+    int r;
+    char **av = new char *[2];
+    int dummy = 0;
+    av[0] = strdup((QString("use=outdev")).toUtf8().data());
+    av[1] = strdup((QString("data_to=") + isopath.path()).toUtf8().data());
+    XORRISO_OPT(check_media, d->xorriso, 2, av, &dummy, 0);
+
+    for (int i = 0; i < 2; ++i)
+        free(av[i]);
+    delete[] av;
+
+    JOBFAILED_IF(r, d->xorriso);
+
+    return true;
 }
 
 /*!
@@ -511,7 +530,7 @@ bool DISOMaster::writeISO(const QUrl isopath, int speed)
     for (int i = 0; i < 6; ++i) {
         free(av[i]);
     }
-    delete []av;
+    delete[] av;
 
     return true;
 }
@@ -528,24 +547,24 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
     char **av;
     Xorriso_sieve_get_result(xorriso, PCHAR("Media current:"), &ac, &av, &avail, 0);
     if (ac < 1) {
-	    Xorriso__dispose_words(&ac, &av);
+        Xorriso__dispose_words(&ac, &av);
         return;
     }
     QString mt = av[0];
     const static QHash<QString, MediaType> typemap = {
-        {"CD-ROM",   MediaType::CD_ROM},
-        {"CD-R",     MediaType::CD_R},
-        {"CD-RW",    MediaType::CD_RW},
-        {"DVD-ROM",  MediaType::DVD_ROM},
-        {"DVD-R",    MediaType::DVD_R},
-        {"DVD-RW",   MediaType::DVD_RW},
-        {"DVD+R",    MediaType::DVD_PLUS_R},
-        {"DVD+R/DL", MediaType::DVD_PLUS_R_DL},
-        {"DVD-RAM",  MediaType::DVD_RAM},
-        {"DVD+RW",   MediaType::DVD_PLUS_RW},
-        {"BD-ROM",   MediaType::BD_ROM},
-        {"BD-R",     MediaType::BD_R},
-        {"BD-RE",    MediaType::BD_RE}
+        { "CD-ROM", MediaType::CD_ROM },
+        { "CD-R", MediaType::CD_R },
+        { "CD-RW", MediaType::CD_RW },
+        { "DVD-ROM", MediaType::DVD_ROM },
+        { "DVD-R", MediaType::DVD_R },
+        { "DVD-RW", MediaType::DVD_RW },
+        { "DVD+R", MediaType::DVD_PLUS_R },
+        { "DVD+R/DL", MediaType::DVD_PLUS_R_DL },
+        { "DVD-RAM", MediaType::DVD_RAM },
+        { "DVD+RW", MediaType::DVD_PLUS_RW },
+        { "BD-ROM", MediaType::BD_ROM },
+        { "BD-R", MediaType::BD_R },
+        { "BD-RE", MediaType::BD_RE }
     };
     mt = mt.left(mt.indexOf(' '));
     if (typemap.find(mt) != typemap.end()) {
@@ -554,7 +573,7 @@ void DISOMasterPrivate::getCurrentDeviceProperty()
         dev[curdev].media = MediaType::NoMedia;
     }
     Xorriso__dispose_words(&ac, &av);
-    
+
     Xorriso_sieve_get_result(xorriso, PCHAR("Media summary:"), &ac, &av, &avail, 0);
     if (ac == 4) {
         const QString units = "kmg";
@@ -634,7 +653,7 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     //check media
     r = QRegularExpression("([0-9]*) blocks read in ([0-9]*) seconds , ([0-9.]*)x");
     m = r.match(msg);
-    if (m.hasMatch()) {
+    if (m.hasMatch() && dev[curdev].datablocks != 0) {
         double percentage = 100. * m.captured(1).toDouble() / dev[curdev].datablocks;
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Running, percentage);
     }
@@ -649,8 +668,7 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
     }
 
     //operation complete
-    if (msg.contains("Blanking done") ||
-        msg.contains(QRegularExpression("Writing to .* completed successfully."))) {
+    if (msg.contains("Blanking done") || msg.contains(QRegularExpression("Writing to .* completed successfully."))) {
         Q_EMIT q->jobStatusChanged(DISOMaster::JobStatus::Finished, 0);
     }
 }
@@ -659,7 +677,7 @@ void DISOMasterPrivate::messageReceived(int type, char *text)
 
 int XorrisoResultHandler(void *handle, char *text)
 {
-    ((DISOMasterNS::DISOMasterPrivate*)handle)->messageReceived(0, text);
+    ((DISOMasterNS::DISOMasterPrivate *)handle)->messageReceived(0, text);
     return 1;
 }
 int XorrisoInfoHandler(void *handle, char *text)
@@ -668,7 +686,7 @@ int XorrisoInfoHandler(void *handle, char *text)
     if (strstr(text, "DEBUG : Concurrent message watcher")) {
         return 1;
     }
-    ((DISOMasterNS::DISOMasterPrivate*)handle)->messageReceived(1, text);
+    ((DISOMasterNS::DISOMasterPrivate *)handle)->messageReceived(1, text);
     return 1;
 }
 /*
