@@ -150,4 +150,27 @@ void TestDISOMaster::test_checkMedia()
     delete x;
 }
 
+void TestDISOMaster::test_dumpISO()
+{
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
+    Q_ASSUME(qEnvironmentVariableIsSet("DISOMASTERTEST_DEVICE"));
+    const QString dev = QString(qgetenv("DISOMASTERTEST_DEVICE"));
+    const QString iso = QString(qgetenv("DISOMASTERTEST_ISOFILE"));
+
+    DISOMaster *x = new DISOMaster;
+    TestSignalReceiver *r = new TestSignalReceiver(x, this);
+    connect(x, &DISOMaster::jobStatusChanged, r, &TestSignalReceiver::updateJobStatus);
+
+    QFuture<void> f = QtConcurrent::run([=] {
+        x->acquireDevice(dev);
+        x->dumpISO(QUrl::fromLocalFile(iso));
+        x->releaseDevice();
+    });
+
+    QTRY_VERIFY_WITH_TIMEOUT(st == DISOMaster::JobStatus::Finished, 300000);
+    f.waitForFinished();
+    delete r;
+    delete x;
+}
+
 QTEST_MAIN(TestDISOMaster)

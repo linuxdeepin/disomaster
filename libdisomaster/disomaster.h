@@ -114,8 +114,7 @@ public:
     Q_DECL_DEPRECATED_X("Suggest use commit with BurnOptions instead") bool commit(int speed = 0, bool closeSession = false, QString volId = "ISOIMAGE");
     bool erase();
     bool checkmedia(double *qgood, double *qslow, double *qbad);
-
-    void dumpISO(const QUrl isopath);
+    bool dumpISO(const QUrl isopath);
     bool writeISO(const QUrl isopath, int speed = 0);
 
 Q_SIGNALS:
